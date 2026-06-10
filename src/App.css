@@ -154,6 +154,127 @@
   max-width: 52ch;
 }
 
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.metric-card span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.metric-card strong {
+  color: var(--text-h);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.error-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+}
+
+.machine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100svh - 380px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.machine-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--soft-bg);
+  cursor: pointer;
+  text-align: left;
+}
+
+.machine-button:hover {
+  border-color: var(--accent-border);
+  border: var(--text-h);
+}
+
+.machine-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.machine-button strong {
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.export-detail-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--soft-bg);
+}
+
+.export-detail-card h3 {
+  margin: 0 0 14px;
+  color: var(--text-h);
+  font-size: 18px;
+}
+
+.export-detail-card dl {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.export-detail-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.export-detail-card dt {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.export-detail-card dd {
+  margin: 0;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1100px) {
   .planner-layout {
     grid-template-columns: 1fr;
@@ -165,5 +286,19 @@
 
   .export-summary {
     justify-content: flex-start;
+  }
+
+  .diagnostics-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
+  .machine-list {
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 640px) {
+  .diagnostics-grid {
+    grid-template-columns: 1fr;
   }
 }
