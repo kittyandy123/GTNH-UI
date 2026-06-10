@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { loadRecipeExport } from './lib/loadRecipes'
-import type { ExportDocument } from './types/recipe'
+import type { ExportDocument, ExportRecipe, ExportStack } from './types/recipe'
+
+const MAX_VISIBLE_RECIPES = 200
 
 type LoadState =
   | { status: 'loading' }
@@ -10,6 +12,9 @@ type LoadState =
 
 function App() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
+  const [searchText, setSearchText] = useState('')
+  const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
 
   useEffect(() => {
     let cancelled = false
@@ -52,6 +57,41 @@ function App() {
         .map(([machineId, count]) => ({ machineId, count }))
         .sort((a, b) => b.count - a.count)
   }, [exportDocument])
+
+  const filteredRecipes = useMemo(() => {
+    if (!exportDocument) {
+      return []
+    }
+
+    const query = normalizeSearchText(searchText)
+
+    return exportDocument.recipes.filter((recipe) => {
+      if (selectedMachineId && recipe.machine.id !== selectedMachineId) {
+        return false
+      }
+
+      if (!query) {
+        return true
+      }
+
+      return recipeMatchesQuery(recipe, query)
+    })
+  }, [exportDocument, searchText, selectedMachineId])
+
+  const visibleRecipes = filteredRecipes.slice(0, MAX_VISIBLE_RECIPES)
+
+  const selectedRecipe = useMemo(() => {
+    if (!exportDocument || !selectedRecipeId) {
+      return undefined
+    }
+
+    return exportDocument.recipes.find((recipe) => recipe.id === selectedRecipeId)
+  }, [exportDocument, selectedRecipeId])
+
+  function selectMachine(machineId: string | undefined) {
+    setSelectedMachineId(machineId)
+    setSelectedRecipeId(undefined)
+  }
 
   return (
       <main className="app-shell">
@@ -104,7 +144,12 @@ function App() {
             className="search-input"
             type="search"
             placeholder="Search by item, fluid, machine, or recipe ID..."
+            value={searchText}
             disabled={loadState.status !== 'loaded'}
+            onChange={(event) => {
+              setSearchText(event.target.value)
+              setSelectedRecipeId(undefined)
+            }}
           />
         </section>
 
@@ -121,11 +166,29 @@ function App() {
 
             {loadState.status === 'loaded' ? (
                 <div className="machine-list">
+                  <button
+                    className={
+                    selectedMachineId === undefined
+                        ? 'machine-button active'
+                        : 'machine-button'
+                    }
+                    type="button"
+                    onClick={() => selectMachine(undefined)}
+                  >
+                    <span>All machines</span>
+                    <strong>{formatNumber(loadState.data.recipes.length)}</strong>
+                  </button>
+
                   {machineCounts.map((machine) => (
                       <button
-                        className="machine-button"
+                        className={
+                        selectedMachineId === machine.machineId
+                            ? 'machine-button active'
+                            : 'machine-button'
+                        }
                         key={machine.machineId}
                         type="button"
+                        onClick={() => selectMachine(machine.machineId)}
                       >
                         <span>{machine.machineId}</span>
                         <strong>{formatNumber(machine.count)}</strong>
@@ -142,25 +205,55 @@ function App() {
           <section className="recipe-results" aria-label="Recipe results">
             <div className="panel-heading">
               <h2>Recipes</h2>
-              <p>
-                {loadState.status === 'loaded'
-                  ? 'Searchable recipe list comes next.'
-                  : 'Search results will appear here.'}
-              </p>
+              <p>{getRecipeResultSummary(loadState, filteredRecipes.length)}</p>
             </div>
 
-            <div className="empty-state">
-              <h3>
-                {loadState.status === 'loaded'
-                  ? 'Recipe export loaded'
-                  : 'Ready for recipe data'}
-              </h3>
-              <p>
-                {loadState.status === 'loaded'
-                  ? 'Next we will add capped recipe results, basic search, and recipe selection.'
-                  : 'Next we will load the exported recipe file, show diagnostics, and render a capped list of searchable recipes.'}
-              </p>
-            </div>
+            {loadState.status === 'loaded' ? (
+                <div className="recipe-list">
+                  {visibleRecipes.map((recipe) => (
+                      <button
+                        className={
+                          selectedRecipeId === recipe.id
+                            ? 'recipe-card active'
+                              : 'recipe-card'
+                        }
+                        key={recipe.id}
+                        type="button"
+                        onClick={() => setSelectedRecipeId(recipe.id)}
+                      >
+                        <div className="recipe-card-header">
+                          <strong>{recipe.machine.name}</strong>
+                          <span>{formatRecipeStats(recipe)}</span>
+                        </div>
+
+                        <StackLine label="In" stacks={recipe.inputs} />
+                        <StackLine label="Out" stacks={recipe.outputs} />
+                      </button>
+                  ))}
+
+                  {filteredRecipes.length > MAX_VISIBLE_RECIPES && (
+                      <div className="recipe-limit-note">
+                        Showing first {formatNumber(MAX_VISIBLE_RECIPES)} of{' '}
+                        {formatNumber(filteredRecipes.length)} matches. Refine your
+                        search to narrow the list.
+                      </div>
+                  )}
+
+                  {filteredRecipes.length === 0 && (
+                      <div className="empty-state">
+                        <h3>No matching recipes</h3>
+                        <p>Try a different item, fluid, machine, or recipe ID.</p>
+                      </div>
+                  )}
+                </div>
+            ) : (
+                <div className="empty-state">
+                  <h3>Ready for recipe data</h3>
+                  <p>
+                    Load the exported recipe file to search recipes and inspect details.
+                  </p>
+                </div>
+            )}
           </section>
 
           <aside className="recipe-details" aria-label="Selected recipe details">
@@ -169,7 +262,9 @@ function App() {
               <p>Select a recipe to inspect inputs, outputs, duration, EU/t, and metadata.</p>
             </div>
 
-            {loadState.status === 'loaded' ? (
+            {selectedRecipe ? (
+                <RecipeDetails recipe={selectedRecipe} />
+            ) : loadState.status === 'loaded' ? (
                 <div className="export-detail-card">
                   <h3>{loadState.data.pack.name}</h3>
                   <dl>
@@ -212,6 +307,184 @@ function MetricCard({ label, value }: MetricCardProps) {
         <strong>{value}</strong>
       </article>
   )
+}
+
+interface StackLineProps {
+  label: string
+  stacks: ExportStack[]
+}
+
+function StackLine({ label, stacks }: StackLineProps) {
+  return (
+      <div className="stack-line">
+        <span className="stack-line-label">{label}</span>
+        <span className="stack-line-value">
+          {stacks.length > 0
+            ? stacks.map(formatStackCompact).join(', ')
+            : 'None'}
+        </span>
+      </div>
+  )
+}
+
+interface RecipeDetailsProps {
+  recipe: ExportRecipe
+}
+
+function RecipeDetails({ recipe }: RecipeDetailsProps) {
+  return (
+      <article className="recipe-detail-card">
+        <div className="recipe-detail-header">
+          <h3>{recipe.machine.name}</h3>
+          <span>{recipe.machine.id}</span>
+        </div>
+
+        <dl className="recipe-stat-grid">
+          <div>
+            <dt>Duration</dt>
+            <dd>{recipe.durationSeconds}</dd>
+          </div>
+          <div>
+            <dt>Ticks</dt>
+            <dd>{recipe.durationTicks}</dd>
+          </div>
+          <div>
+            <dt>EU/t</dt>
+            <dd>{recipe.eut}</dd>
+          </div>
+          <div>
+            <dt>Category</dt>
+            <dd>{recipe.machine.category}</dd>
+          </div>
+        </dl>
+
+        <section className="detail-section">
+          <h4>Inputs</h4>
+          <StackList stacks={recipe.inputs} />
+        </section>
+
+        <section className="detail-section">
+          <h4>Outputs</h4>
+          <StackList stacks={recipe.outputs} />
+        </section>
+
+        <section className="detail-section">
+          <h4>Metadata</h4>
+          <MetadataList recipe={recipe} />
+        </section>
+
+        <section className="detail-section">
+          <h4>Recipe ID</h4>
+          <code className="recipe-id">{recipe.id}</code>
+        </section>
+      </article>
+  )
+}
+
+interface StackListProps {
+  stacks: ExportStack[]
+}
+
+function StackList({ stacks }: StackListProps) {
+  if (stacks.length === 0) {
+    return <p className="muted-text">None</p>
+  }
+
+  return (
+      <ul className="stack-list">
+        {stacks.map((stack, index) => (
+            <li key={`${stack.kind}:${stack.id}:${stack.meta}:${index}`}>
+              <div>
+                <strong>{stack.displayName}</strong>
+                <span>{formatStackIdentity(stack)}</span>
+              </div>
+              <span>{formatStackAmount(stack)}</span>
+            </li>
+        ))}
+      </ul>
+  )
+}
+
+interface MetadataListProps {
+  recipe: ExportRecipe
+}
+
+function MetadataList({ recipe }: MetadataListProps) {
+  const metadataEntries = Object.entries(recipe.metadata)
+
+  if (metadataEntries.length === 0) {
+    return <p className="muted-text">No metadata.</p>
+  }
+
+  return (
+      <dl className="metadata-list">
+        {metadataEntries.map(([key, value]) => (
+            <div key={key}>
+              <dt>{key}</dt>
+              <dd>{String(value)}</dd>
+            </div>
+        ))}
+      </dl>
+  )
+}
+
+function recipeMatchesQuery(recipe: ExportRecipe, query: string): boolean {
+  return (
+      recipe.id.toLowerCase().includes(query) ||
+          recipe.machine.id.toLowerCase().includes(query) ||
+          recipe.machine.name.toLowerCase().includes(query) ||
+          recipe.inputs.some((stack) => stackMatchesQuery(stack, query)) ||
+          recipe.outputs.some((stack) => stackMatchesQuery(stack, query))
+  )
+}
+
+function stackMatchesQuery(stack: ExportStack, query: string): boolean {
+  return (
+      stack.id.toLowerCase().includes(query) ||
+          stack.displayName.toLowerCase().includes(query)
+  )
+}
+
+function normalizeSearchText(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+function formatRecipeStats(recipe: ExportRecipe): string {
+  const parts = [`${recipe.durationSeconds}s`]
+
+  if (recipe.eut !== 0) {
+    parts.push(`${recipe.eut} EU/t`)
+  }
+
+  if (recipe.metadata.circuit !== undefined) {
+    parts.push(`circuit ${recipe.metadata.circuit}`)
+  }
+
+  return parts.join(' . ')
+}
+
+function formatStackCompact(stack: ExportStack): string {
+  return `${formatStackAmount(stack)} ${stack.displayName}`
+}
+
+function formatStackAmount(stack: ExportStack): string {
+  return `${formatNumber(stack.amount)} ${stack.unit}`
+}
+
+function formatStackIdentity(stack: ExportStack): string {
+  if (stack.kind === 'item') {
+    return `${stack.id}:${stack.meta}`
+  }
+
+  return stack.id
+}
+
+function getRecipeResultSummary(loadState: LoadState, resultCount: number): string {
+  if (loadState.status !== 'loaded') {
+    return 'Search results will appear here.'
+  }
+
+  return `${formatNumber(resultCount)} matching recipes.`
 }
 
 function getStatusText(loadState: LoadState): string {

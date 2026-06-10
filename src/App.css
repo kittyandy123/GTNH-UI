@@ -220,7 +220,7 @@
 
 .machine-button:hover {
   border-color: var(--accent-border);
-  border: var(--text-h);
+  color: var(--text-h);
 }
 
 .machine-button span {
@@ -275,6 +275,208 @@
   overflow-wrap: anywhere;
 }
 
+.recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100svh - 380px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.recipe-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  color: var(--text);
+  background: var(--soft-bg);
+  cursor: pointer;
+  text-align: left;
+}
+
+.recipe-card:hover,
+.recipe-card.active,
+.machine-button.active {
+  border-color: var(--accent-border);
+  color: var(--text-h);
+  background: var(--accent-bg);
+}
+
+.recipe-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recipe-card-header strong {
+  color: var(--text-h);
+}
+
+.recipe-card-header span {
+  color: var(--text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.stack-line {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.stack-line-label {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.stack-line-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-limit-note {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--text-muted);
+  background: var(--soft-bg);
+  font-size: 14px;
+  text-align: center;
+}
+
+.recipe-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.recipe-detail-header {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--soft-bg);
+}
+
+.recipe-detail-header h3 {
+  margin: 0 0 4px;
+  color: var(--text-h);
+}
+
+.recipe-detail-header span {
+  color: var(--text-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.recipe-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+
+.recipe-stat-grid div {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--soft-bg);
+}
+
+.recipe-stat-grid dt,
+.metadata-list dt {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.recipe-stat-grid dd,
+.metadata-list dd {
+  margin: 0;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-section h4 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stack-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--soft-bg);
+}
+
+.stack-list strong {
+  display: block;
+  color: var(--text-h);
+}
+
+.stack-list span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.stack-list li > span {
+  color: var(--text-h);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.metadata-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.metadata-list div {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--soft-bg);
+}
+
+.recipe-id {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.muted-text {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 @media (max-width: 1100px) {
   .planner-layout {
     grid-template-columns: 1fr;
@@ -294,6 +496,10 @@
 
   .machine-list {
     max-height: 360px;
+  }
+
+  .recipe-list {
+    max-height: 520px;
   }
 }
 

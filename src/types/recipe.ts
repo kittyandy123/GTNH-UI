@@ -50,7 +50,7 @@ export interface ExportStack {
     meta: number
     displayName: string
     amount: number
-    units: 'items' | 'L' | string
+    unit: 'items' | 'L' | string
     chance?: number
 }
 
