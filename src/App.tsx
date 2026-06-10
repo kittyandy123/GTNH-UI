@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { loadRecipeExport } from './lib/loadRecipes'
+import {
+  formatDate,
+  formatNumber,
+  formatRecipeStats,
+  formatStackAmount,
+  formatStackCompact,
+  formatStackIdentity,
+  normalizeSearchText,
+  recipeMatchesQuery,
+} from './lib/recipeHelpers'
 import type { ExportDocument, ExportRecipe, ExportStack } from './types/recipe'
 
 const MAX_VISIBLE_RECIPES = 200
@@ -428,57 +438,6 @@ function MetadataList({ recipe }: MetadataListProps) {
   )
 }
 
-function recipeMatchesQuery(recipe: ExportRecipe, query: string): boolean {
-  return (
-      recipe.id.toLowerCase().includes(query) ||
-          recipe.machine.id.toLowerCase().includes(query) ||
-          recipe.machine.name.toLowerCase().includes(query) ||
-          recipe.inputs.some((stack) => stackMatchesQuery(stack, query)) ||
-          recipe.outputs.some((stack) => stackMatchesQuery(stack, query))
-  )
-}
-
-function stackMatchesQuery(stack: ExportStack, query: string): boolean {
-  return (
-      stack.id.toLowerCase().includes(query) ||
-          stack.displayName.toLowerCase().includes(query)
-  )
-}
-
-function normalizeSearchText(value: string): string {
-  return value.trim().toLowerCase()
-}
-
-function formatRecipeStats(recipe: ExportRecipe): string {
-  const parts = [`${recipe.durationSeconds}s`]
-
-  if (recipe.eut !== 0) {
-    parts.push(`${recipe.eut} EU/t`)
-  }
-
-  if (recipe.metadata.circuit !== undefined) {
-    parts.push(`circuit ${recipe.metadata.circuit}`)
-  }
-
-  return parts.join(' . ')
-}
-
-function formatStackCompact(stack: ExportStack): string {
-  return `${formatStackAmount(stack)} ${stack.displayName}`
-}
-
-function formatStackAmount(stack: ExportStack): string {
-  return `${formatNumber(stack.amount)} ${stack.unit}`
-}
-
-function formatStackIdentity(stack: ExportStack): string {
-  if (stack.kind === 'item') {
-    return `${stack.id}:${stack.meta}`
-  }
-
-  return stack.id
-}
-
 function getRecipeResultSummary(loadState: LoadState, resultCount: number): string {
   if (loadState.status !== 'loaded') {
     return 'Search results will appear here.'
@@ -507,20 +466,6 @@ function getExportSubtitle(loadState: LoadState): string {
     case 'error':
       return 'Recipe browser POC'
   }
-}
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat().format(value)
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleString()
 }
 
 export default App
