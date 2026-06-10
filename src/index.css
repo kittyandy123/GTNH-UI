@@ -1,0 +1,82 @@
+:root {
+  --text: #6b7280;
+  --text-muted: #8a93a3;
+  --text-h: #111827;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --soft-bg: #f9fafb;
+  --input-bg: #fffff;
+  --border: #e5e7eb;
+  --code-bg: #eef2f7;
+  --accent: #6d4dfc;
+  --accent-bg: rgba(109, 93, 252, 0.1);
+  --accent-border: rgba(109, 93, 252, 0.35);
+  --shadow:
+    rgba(15, 23, 42, 0.04) 0 12px 20px,
+    rgba(15, 23, 42, 0.03) 0 2px 6px;
+
+  --sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+
+  --mono:
+    'JetBrains Mono', 'Cascadia Code', 'SFMono-Regular', Consolas,
+    'Liberation Mono', monospace;
+
+  font: 16px/1.5 var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #a7b0c0;
+    --text-muted: #7f8a9b;
+    --text-h: #f3f4f6;
+    --bg: #111318;
+    --surface: #181b22;
+    --soft-bg: #14171d;
+    --input-bg: #111318;
+    --border: #2a2f3a;
+    --code-bg: #202530;
+    --accent: #a99dff;
+    --accent-bg: rgba(169, 157, 255, 0.12);
+    --accent-border: rgba(169, 157, 255, 0.4);
+    --shadow:
+      rgba(0, 0, 0, 0.25) 0 12px 20px,
+      rgba(0, 0, 0, 0.2) 0 2px 6px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+code {
+  display: inline-flex;
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: var(--text-h);
+  background: var(--code-bg);
+  font-family: var(--mono);
+}
