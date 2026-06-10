@@ -11,9 +11,18 @@ import {
   normalizeSearchText,
   recipeMatchesQuery,
 } from './lib/recipeHelpers'
+import type { SearchMode } from './lib/recipeHelpers'
 import type { ExportDocument, ExportRecipe, ExportStack } from './types/recipe'
 
 const MAX_VISIBLE_RECIPES = 200
+
+const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'inputs', label: 'Inputs' },
+  { value: 'outputs', label: 'Outputs' },
+  { value: 'machines', label: 'Machines' },
+  { value: 'ids', label: 'IDs'}
+]
 
 type LoadState =
   | { status: 'loading' }
@@ -23,6 +32,7 @@ type LoadState =
 function App() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [searchText, setSearchText] = useState('')
+  const [searchMode, setSearchMode] = useState<SearchMode>('all')
   const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
 
@@ -84,9 +94,9 @@ function App() {
         return true
       }
 
-      return recipeMatchesQuery(recipe, query)
+      return recipeMatchesQuery(recipe, query, searchMode)
     })
-  }, [exportDocument, searchText, selectedMachineId])
+  }, [exportDocument, searchText, searchMode, selectedMachineId])
 
   const visibleRecipes = filteredRecipes.slice(0, MAX_VISIBLE_RECIPES)
 
@@ -161,6 +171,27 @@ function App() {
               setSelectedRecipeId(undefined)
             }}
           />
+
+          <div className="search-mode-row" aria-label="Search scope">
+            {SEARCH_MODE_OPTIONS.map((option) => (
+                <button
+                  className={
+                    searchMode === option.value
+                      ? 'search-mode-button active'
+                      : 'search-mode-button'
+                  }
+                  key={option.value}
+                  type="button"
+                  disabled={loadState.status !== 'loaded'}
+                  onClick={() => {
+                    setSearchMode(option.value)
+                    setSelectedRecipeId(undefined)
+                  }}
+                >
+                  {option.label}
+                </button>
+            ))}
+          </div>
         </section>
 
         <section className="planner-layout">
