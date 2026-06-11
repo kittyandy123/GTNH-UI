@@ -25,8 +25,21 @@ const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
   { value: 'inputs', label: 'Inputs' },
   { value: 'outputs', label: 'Outputs' },
   { value: 'machines', label: 'Machines' },
-  { value: 'ids', label: 'IDs' }
+  { value: 'ids', label: 'IDs' },
 ]
+
+type ResultViewMode = 'exact' | 'grouped-output'
+
+const RESULT_VIEW_OPTIONS: { value: ResultViewMode; label: string}[] = [
+  { value: 'exact', label: 'Exact recipes' },
+  { value: 'grouped-output', label: 'Group by output' },
+]
+
+interface OutputRecipeGroup {
+  key: string
+  output: ExportStack | undefined
+  recipes: NormalizedExportRecipe[]
+}
 
 type LoadState =
   | { status: 'loading' }
@@ -37,6 +50,7 @@ function App() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [searchText, setSearchText] = useState('')
   const [searchMode, setSearchMode] = useState<SearchMode>('all')
+  const [resultViewMode, setResultViewMode] = useState<ResultViewMode>('exact')
   const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
 
@@ -104,6 +118,13 @@ function App() {
   }, [exportDocument, searchText, searchMode, selectedMachineId])
 
   const visibleRecipes = filteredRecipes.slice(0, MAX_VISIBLE_RECIPES)
+
+  const outputGroups = useMemo(
+      () => buildOutputGroups(filteredRecipes),
+      [filteredRecipes],
+  )
+
+  const visibleOutputGroups = outputGroups.slice(0, MAX_VISIBLE_RECIPES)
 
   const selectedRecipe = useMemo(() => {
     if (!exportDocument || !selectedRecipeId) {
@@ -216,6 +237,27 @@ function App() {
                 </button>
             ))}
           </div>
+
+          <div className="search-mode-row" aria-label="Result view">
+            {RESULT_VIEW_OPTIONS.map((option) => (
+                <button
+                    className={
+                      resultViewMode === option.value
+                          ? 'search-mode-button active'
+                          : 'search-mode-button'
+                    }
+                    key={option.value}
+                    type="button"
+                    disabled={loadState.status !== 'loaded'}
+                    onClick={() => {
+                      setResultViewMode(option.value)
+                      setSelectedRecipeId(undefined)
+                    }}
+                >
+                  {option.label}
+                </button>
+            ))}
+          </div>
         </section>
 
         <section className="planner-layout">
@@ -270,48 +312,81 @@ function App() {
           <section className="recipe-results" aria-label="Recipe results">
             <div className="panel-heading">
               <h2>Recipes</h2>
-              <p>{getRecipeResultSummary(loadState, filteredRecipes.length)}</p>
+              <p>
+                {getRecipeResultSummary(
+                    loadState,
+                    filteredRecipes.length,
+                    outputGroups.length,
+                    resultViewMode,
+                )}
+              </p>
             </div>
 
             {loadState.status === 'loaded' ? (
                 <div className="recipe-list">
-                  {visibleRecipes.map((recipe) => (
-                      <button
-                        className={
-                          selectedRecipeId === recipe.id
-                            ? 'recipe-card active'
-                              : 'recipe-card'
-                        }
-                        key={recipe.id}
-                        type="button"
-                        onClick={() => setSelectedRecipeId(recipe.id)}
-                      >
-                        <div className="recipe-card-header">
-                          <strong>{recipe.machine.name}</strong>
-                          <span>{formatRecipeStats(recipe)}</span>
-                        </div>
-
-                        <StackLine label="In" stacks={recipe.inputs} />
-
-                        {recipe.tools.length > 0 && <StackLine label="Tool" stacks={recipe.tools} />}
-
-                        <StackLine label="Out" stacks={recipe.outputs} />
-                      </button>
-                  ))}
-
-                  {filteredRecipes.length > MAX_VISIBLE_RECIPES && (
-                      <div className="recipe-limit-note">
-                        Showing first {formatNumber(MAX_VISIBLE_RECIPES)} of{' '}
-                        {formatNumber(filteredRecipes.length)} matches. Refine your
-                        search to narrow the list.
-                      </div>
-                  )}
-
-                  {filteredRecipes.length === 0 && (
+                  {filteredRecipes.length === 0 ? (
                       <div className="empty-state">
                         <h3>No matching recipes</h3>
                         <p>Try a different item, fluid, machine, or recipe ID.</p>
                       </div>
+                  ) : resultViewMode === 'exact' ? (
+                      <>
+                        {visibleRecipes.map((recipe) => (
+                            <button
+                                className={
+                                  selectedRecipeId === recipe.id
+                                      ? 'recipe-card active'
+                                      : 'recipe-card'
+                                }
+                                key={recipe.id}
+                                type="button"
+                                onClick={() => setSelectedRecipeId(recipe.id)}
+                            >
+                              <div className="recipe-card-header">
+                                <strong>{recipe.machine.name}</strong>
+                                <span>{formatRecipeStats(recipe)}</span>
+                              </div>
+
+                              <StackLine label="In" stacks={recipe.inputs} />
+
+                              {recipe.tools.length > 0 && (
+                                  <StackLine label="Tool" stacks={recipe.tools} />
+                              )}
+
+                              <StackLine label="Out" stacks={recipe.outputs} />
+                            </button>
+                        ))}
+
+                        {filteredRecipes.length > MAX_VISIBLE_RECIPES && (
+                            <div className="recipe-limit-note">
+                              Showing first {formatNumber(MAX_VISIBLE_RECIPES)} of{' '}
+                              {formatNumber(filteredRecipes.length)} matches. Refine your search to
+                              narrow the list.
+                            </div>
+                        )}
+                      </>
+                  ) : (
+                      <>
+                        {visibleOutputGroups.map((group) => (
+                            <OutputGroupCard
+                                active={
+                                    selectedRecipeId !== undefined &&
+                                    group.recipes.some((recipe) => recipe.id === selectedRecipeId)
+                                }
+                                group={group}
+                                key={group.key}
+                                onSelect={() => setSelectedRecipeId(group.recipes[0].id)}
+                            />
+                        ))}
+
+                        {outputGroups.length > MAX_VISIBLE_RECIPES && (
+                            <div className="recipe-limit-note">
+                              Showing first {formatNumber(MAX_VISIBLE_RECIPES)} of{' '}
+                              {formatNumber(outputGroups.length)} output groups. Refine your search
+                              to narrow the list.
+                            </div>
+                        )}
+                      </>
                   )}
                 </div>
             ) : (
@@ -396,6 +471,38 @@ function StackLine({ label, stacks }: StackLineProps) {
             : 'None'}
         </span>
       </div>
+  )
+}
+
+interface OutputGroupCardProps {
+  group: OutputRecipeGroup
+  active: boolean
+  onSelect: () => void
+}
+
+function OutputGroupCard({ group, active, onSelect }: OutputGroupCardProps) {
+  const outputStacks = group.output ? [group.output] : []
+
+  return (
+      <button
+        className={active ? 'recipe-card active' : 'recipe-card'}
+        type="button"
+        onClick={onSelect}
+      >
+        <div className="recipe-card-header">
+          <strong>{group.output?.displayName ?? 'No output'}</strong>
+          <span>{formatNumber(group.recipes.length)} recipes</span>
+        </div>
+
+        <StackLine label="Out" stacks={outputStacks} />
+
+        <div className="stack-line">
+          <span className="stack-line-label">Via</span>
+          <span className="stack-line-value">
+            {formatMachineSummary(group.recipes)}
+          </span>
+        </div>
+      </button>
   )
 }
 
@@ -545,12 +652,79 @@ function MetadataList({ recipe }: MetadataListProps) {
   )
 }
 
-function getRecipeResultSummary(loadState: LoadState, resultCount: number): string {
+function buildOutputGroups(recipes: NormalizedExportRecipe[]): OutputRecipeGroup[] {
+  const groups = new Map<string, OutputRecipeGroup>()
+
+  for (const recipe of recipes) {
+    const output = recipe.outputs[0]
+    const key = getOutputGroupKey(recipe)
+
+    const existingGroup = groups.get(key)
+
+    if (existingGroup) {
+      existingGroup.recipes.push(recipe)
+      continue
+    }
+
+    groups.set(key, {
+      key,
+      output,
+      recipes: [recipe],
+    })
+  }
+
+  return Array.from(groups.values()).sort(compareOutputGroups)
+}
+
+function getOutputGroupKey(recipe: NormalizedExportRecipe): string {
+  const output = recipe.outputs[0]
+
+  if (!output) {
+    return `recipe:${recipe.id}`
+  }
+
+  if (output.kind === 'fluid') {
+    return `${output.kind}:${output.id}`
+  }
+
+  return `${output.kind}:${output.id}:${output.meta}`
+}
+
+function compareOutputGroups(left: OutputRecipeGroup, right: OutputRecipeGroup): number {
+  const countComparison = right.recipes.length - left.recipes.length
+
+  if (countComparison !==0) {
+    return countComparison
+  }
+
+  return (left.output?.displayName ?? '').localeCompare(
+      right.output?.displayName ?? '',
+  )
+}
+
+function formatMachineSummary(recipes: NormalizedExportRecipe[]): string {
+  const machineNames = Array.from(
+      new Set(recipes.map((recipe) => recipe.machine.name)),
+  )
+
+  if (machineNames.length <= 3) {
+    return machineNames.join(', ')
+  }
+
+  return `${machineNames.slice(0, 3).join(', ')} + ${machineNames.length - 3} more`
+}
+
+
+function getRecipeResultSummary(loadState: LoadState, recipeCount: number, groupCount: number, resultViewMode: ResultViewMode): string {
   if (loadState.status !== 'loaded') {
     return 'Search results will appear here.'
   }
 
-  return `${formatNumber(resultCount)} matching recipes.`
+  if (resultViewMode === 'grouped-output') {
+    return `${formatNumber(groupCount)} output groups from ${formatNumber(recipeCount)} matching recipes.`
+  }
+
+  return `${formatNumber(recipeCount)} matching recipes.`
 }
 
 function getStatusText(loadState: LoadState): string {
