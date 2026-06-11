@@ -3,6 +3,8 @@ import type { ExportRecipe, ExportStack } from '../types/recipe'
 export type SearchMode = 'all' | 'inputs' | 'outputs' | 'machines' | 'ids'
 
 export function recipeMatchesQuery(recipe: ExportRecipe, query: string, mode: SearchMode): boolean {
+    const tools = recipe.tools ?? []
+
     switch (mode) {
         case 'inputs':
             return recipe.inputs.some((stack) => stackMatchesText(stack, query))
@@ -11,12 +13,16 @@ export function recipeMatchesQuery(recipe: ExportRecipe, query: string, mode: Se
         case 'machines':
             return machineMatchesQuery(recipe, query)
         case 'ids':
-            return recipeIdentityMatchesQuery(recipe, query)
+            return (
+                recipeIdentityMatchesQuery(recipe, query) ||
+                    tools.some((stack) => stackMatchesIdentity(stack, query))
+            )
         case 'all':
             return (
                 recipe.id.toLowerCase().includes(query) ||
                 machineMatchesQuery(recipe, query) ||
                 recipe.inputs.some((stack) => stackMatchesText(stack, query)) ||
+                tools.some((stack) => stackMatchesText(stack, query)) ||
                 recipe.outputs.some((stack) => stackMatchesText(stack, query))
             )
     }

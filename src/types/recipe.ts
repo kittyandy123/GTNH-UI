@@ -25,6 +25,13 @@ export interface ExportDiagnostics {
     recipesSkippedDueToError: number
     recipeErrorsByMachine: Record<string, number>
     recipeCountsByMachine: Record<string, number>
+
+    toolInputsExtracted?: number
+    toolInputsByMachine?: Record<string, number>
+    zeroAmountInputsMovedToTools?: number
+    zeroAmountInputsRemaining?: number
+    inferredToolAmounts?: number
+    sampleToolInputs?: string[]
 }
 
 export interface ExportRecipe {
@@ -34,6 +41,7 @@ export interface ExportRecipe {
     durationSeconds: number
     eut: number
     inputs: ExportStack[]
+    tools?: ExportStack[]
     outputs: ExportStack[]
     metadata: RecipeMetadata
 }

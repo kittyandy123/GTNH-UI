@@ -13,8 +13,10 @@ import {
   normalizeSearchText,
   recipeMatchesQuery,
 } from './lib/recipeHelpers'
+import { normalizeExportDocument } from './lib/normalizeExport'
 import type { SearchMode } from './lib/recipeHelpers'
-import type { ExportDocument, ExportRecipe, ExportStack } from './types/recipe'
+import type { ExportStack } from './types/recipe'
+import type { NormalizedExportDocument, NormalizedExportRecipe } from './lib/normalizeExport'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -28,7 +30,7 @@ const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'loaded'; data: ExportDocument }
+  | { status: 'loaded'; data: NormalizedExportDocument }
   | { status: 'error'; message: string }
 
 function App() {
@@ -43,7 +45,8 @@ function App() {
 
     async function loadRecipes() {
       try {
-        const data = await loadRecipeExport()
+        const rawData = await loadRecipeExport()
+        const data = normalizeExportDocument(rawData)
 
         if (!cancelled) {
           setLoadState({ status: 'loaded', data })
@@ -154,6 +157,18 @@ function App() {
                 label="Recipe errors"
                 value={formatNumber(loadState.data.diagnostics.recipesSkippedDueToError)}
               />
+              {loadState.data.diagnostics.toolInputsExtracted !== undefined && (
+                  <MetricCard
+                    label="Tool inputs extracted"
+                    value={formatNumber(loadState.data.diagnostics.toolInputsExtracted)}
+                  />
+              )}
+              {loadState.data.diagnostics.zeroAmountInputsRemaining !== undefined && (
+                  <MetricCard
+                    label="Zero-amount inputs remaining"
+                    value={formatNumber(loadState.data.diagnostics.zeroAmountInputsRemaining)}
+                  />
+              )}
             </section>
         )}
 
@@ -277,6 +292,9 @@ function App() {
                         </div>
 
                         <StackLine label="In" stacks={recipe.inputs} />
+
+                        {recipe.tools.length > 0 && <StackLine label="Tool" stacks={recipe.tools} />}
+
                         <StackLine label="Out" stacks={recipe.outputs} />
                       </button>
                   ))}
@@ -382,7 +400,7 @@ function StackLine({ label, stacks }: StackLineProps) {
 }
 
 interface RecipeDetailsProps {
-  recipe: ExportRecipe
+  recipe: NormalizedExportRecipe
   onFindProducers: (stack: ExportStack) => void
   onFindUses: (stack: ExportStack) => void
 }
@@ -421,8 +439,21 @@ function RecipeDetails({ recipe, onFindProducers, onFindUses }: RecipeDetailsPro
               durationSeconds={recipe.durationSeconds}
               actionLabel="Find producers"
               onStackAction={onFindProducers}
+              rateMode="rate"
           />
         </section>
+
+        {recipe.tools.length > 0 && (
+            <section className="detail-section">
+              <h4>Tooling</h4>
+              <StackList
+                  stacks={recipe.tools}
+                  actionLabel="Find producers"
+                  onStackAction={onFindProducers}
+                  rateMode="required"
+              />
+            </section>
+        )}
 
         <section className="detail-section">
           <h4>Outputs</h4>
@@ -431,6 +462,7 @@ function RecipeDetails({ recipe, onFindProducers, onFindUses }: RecipeDetailsPro
               durationSeconds={recipe.durationSeconds}
               actionLabel="Find uses"
               onStackAction={onFindUses}
+              rateMode="rate"
           />
         </section>
 
@@ -449,12 +481,13 @@ function RecipeDetails({ recipe, onFindProducers, onFindUses }: RecipeDetailsPro
 
 interface StackListProps {
   stacks: ExportStack[]
-  durationSeconds: number
   actionLabel: string
   onStackAction: (stack: ExportStack) => void
+  durationSeconds?: number
+  rateMode: 'rate' | 'required'
 }
 
-function StackList({ stacks, durationSeconds, actionLabel, onStackAction }: StackListProps) {
+function StackList({ stacks, durationSeconds, actionLabel, onStackAction, rateMode }: StackListProps) {
   if (stacks.length === 0) {
     return <p className="muted-text">None</p>
   }
@@ -470,7 +503,11 @@ function StackList({ stacks, durationSeconds, actionLabel, onStackAction }: Stac
 
               <div className="stack-rate-block">
                 <span>{formatStackAmount(stack)}</span>
-                <em>{formatStackRate(stack, durationSeconds)}</em>
+                <em>
+                  {rateMode === 'rate' && durationSeconds !== undefined
+                    ? formatStackRate(stack, durationSeconds)
+                    : 'Not consumed'}
+                </em>
                 <button
                   className="stack-action-button"
                   type="button"
@@ -486,7 +523,7 @@ function StackList({ stacks, durationSeconds, actionLabel, onStackAction }: Stac
 }
 
 interface MetadataListProps {
-  recipe: ExportRecipe
+  recipe: NormalizedExportRecipe
 }
 
 function MetadataList({ recipe }: MetadataListProps) {
