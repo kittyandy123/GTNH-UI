@@ -531,6 +531,23 @@
   font-style: normal;
 }
 
+.stack-action-button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.stack-action-button:hover {
+  border-color: var(--accent-border);
+  color: var(--text-h);
+  background: var(--accent-bg);
+}
+
 @media (max-width: 1100px) {
   .planner-layout {
     grid-template-columns: 1fr;

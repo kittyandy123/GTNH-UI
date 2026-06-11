@@ -89,6 +89,14 @@ export function formatStackIdentity(stack: ExportStack): string {
     return stack.id
 }
 
+export function formatStackSearchToken(stack: ExportStack): string {
+    if (stack.kind === 'fluid') {
+        return stack.id
+    }
+
+    return `${stack.id}:${stack.meta}`
+}
+
 export function formatNumber(value: number): string {
     return new Intl.NumberFormat().format(value)
 }

@@ -9,6 +9,7 @@ import {
   formatStackCompact,
   formatStackIdentity,
   formatStackRate,
+  formatStackSearchToken,
   normalizeSearchText,
   recipeMatchesQuery,
 } from './lib/recipeHelpers'
@@ -111,6 +112,13 @@ function App() {
 
   function selectMachine(machineId: string | undefined) {
     setSelectedMachineId(machineId)
+    setSelectedRecipeId(undefined)
+  }
+
+  function navigateToStack(stack: ExportStack, mode: SearchMode) {
+    setSearchText(formatStackSearchToken(stack))
+    setSearchMode(mode)
+    setSelectedMachineId(undefined)
     setSelectedRecipeId(undefined)
   }
 
@@ -305,7 +313,11 @@ function App() {
             </div>
 
             {selectedRecipe ? (
-                <RecipeDetails recipe={selectedRecipe} />
+                <RecipeDetails
+                    recipe={selectedRecipe}
+                    onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
+                    onFindUses={(stack) => navigateToStack(stack, 'inputs')}
+                />
             ) : loadState.status === 'loaded' ? (
                 <div className="export-detail-card">
                   <h3>{loadState.data.pack.name}</h3>
@@ -371,9 +383,11 @@ function StackLine({ label, stacks }: StackLineProps) {
 
 interface RecipeDetailsProps {
   recipe: ExportRecipe
+  onFindProducers: (stack: ExportStack) => void
+  onFindUses: (stack: ExportStack) => void
 }
 
-function RecipeDetails({ recipe }: RecipeDetailsProps) {
+function RecipeDetails({ recipe, onFindProducers, onFindUses }: RecipeDetailsProps) {
   return (
       <article className="recipe-detail-card">
         <div className="recipe-detail-header">
@@ -402,12 +416,22 @@ function RecipeDetails({ recipe }: RecipeDetailsProps) {
 
         <section className="detail-section">
           <h4>Inputs</h4>
-          <StackList stacks={recipe.inputs} durationSeconds={recipe.durationSeconds} />
+          <StackList
+              stacks={recipe.inputs}
+              durationSeconds={recipe.durationSeconds}
+              actionLabel="Find producers"
+              onStackAction={onFindProducers}
+          />
         </section>
 
         <section className="detail-section">
           <h4>Outputs</h4>
-          <StackList stacks={recipe.outputs} durationSeconds={recipe.durationSeconds} />
+          <StackList
+              stacks={recipe.outputs}
+              durationSeconds={recipe.durationSeconds}
+              actionLabel="Find uses"
+              onStackAction={onFindUses}
+          />
         </section>
 
         <section className="detail-section">
@@ -426,9 +450,11 @@ function RecipeDetails({ recipe }: RecipeDetailsProps) {
 interface StackListProps {
   stacks: ExportStack[]
   durationSeconds: number
+  actionLabel: string
+  onStackAction: (stack: ExportStack) => void
 }
 
-function StackList({ stacks, durationSeconds }: StackListProps) {
+function StackList({ stacks, durationSeconds, actionLabel, onStackAction }: StackListProps) {
   if (stacks.length === 0) {
     return <p className="muted-text">None</p>
   }
@@ -445,6 +471,13 @@ function StackList({ stacks, durationSeconds }: StackListProps) {
               <div className="stack-rate-block">
                 <span>{formatStackAmount(stack)}</span>
                 <em>{formatStackRate(stack, durationSeconds)}</em>
+                <button
+                  className="stack-action-button"
+                  type="button"
+                  onClick={() => onStackAction(stack)}
+                >
+                  {actionLabel}
+                </button>
               </div>
             </li>
         ))}
