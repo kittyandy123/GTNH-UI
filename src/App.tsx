@@ -8,6 +8,7 @@ import {
   formatStackAmount,
   formatStackCompact,
   formatStackIdentity,
+  formatStackRate,
   normalizeSearchText,
   recipeMatchesQuery,
 } from './lib/recipeHelpers'
@@ -21,7 +22,7 @@ const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
   { value: 'inputs', label: 'Inputs' },
   { value: 'outputs', label: 'Outputs' },
   { value: 'machines', label: 'Machines' },
-  { value: 'ids', label: 'IDs'}
+  { value: 'ids', label: 'IDs' }
 ]
 
 type LoadState =
@@ -401,12 +402,12 @@ function RecipeDetails({ recipe }: RecipeDetailsProps) {
 
         <section className="detail-section">
           <h4>Inputs</h4>
-          <StackList stacks={recipe.inputs} />
+          <StackList stacks={recipe.inputs} durationSeconds={recipe.durationSeconds} />
         </section>
 
         <section className="detail-section">
           <h4>Outputs</h4>
-          <StackList stacks={recipe.outputs} />
+          <StackList stacks={recipe.outputs} durationSeconds={recipe.durationSeconds} />
         </section>
 
         <section className="detail-section">
@@ -424,9 +425,10 @@ function RecipeDetails({ recipe }: RecipeDetailsProps) {
 
 interface StackListProps {
   stacks: ExportStack[]
+  durationSeconds: number
 }
 
-function StackList({ stacks }: StackListProps) {
+function StackList({ stacks, durationSeconds }: StackListProps) {
   if (stacks.length === 0) {
     return <p className="muted-text">None</p>
   }
@@ -439,7 +441,11 @@ function StackList({ stacks }: StackListProps) {
                 <strong>{stack.displayName}</strong>
                 <span>{formatStackIdentity(stack)}</span>
               </div>
-              <span>{formatStackAmount(stack)}</span>
+
+              <div className="stack-rate-block">
+                <span>{formatStackAmount(stack)}</span>
+                <em>{formatStackRate(stack, durationSeconds)}</em>
+              </div>
             </li>
         ))}
       </ul>

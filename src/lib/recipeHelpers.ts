@@ -102,3 +102,19 @@ export function formatDate(value: string): string {
 
     return date.toLocaleString()
 }
+
+export function formatStackRate(stack: ExportStack, durationSeconds: number): string {
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        return `? ${stack.unit}/s`
+    }
+
+    const rate = stack.amount / durationSeconds
+
+    return `${formatDecimal(rate)} ${stack.unit}/s`
+}
+
+export function formatDecimal(value: number): string {
+    return new Intl.NumberFormat(undefined, {
+        maximumFractionDigits: 3,
+    }).format(value)
+}
