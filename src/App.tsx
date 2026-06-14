@@ -286,7 +286,12 @@ function App() {
         )}
 
         {plannedRecipe && plannerDraft && (
-            <PlannerRateBreakdown recipe={plannedRecipe} draft={plannerDraft} />
+            <PlannerRateBreakdown
+                recipe={plannedRecipe}
+                draft={plannerDraft}
+                onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
+                onFindUses={(stack) => navigateToStack(stack, 'inputs')}
+            />
         )}
 
         <section className="planner-layout">

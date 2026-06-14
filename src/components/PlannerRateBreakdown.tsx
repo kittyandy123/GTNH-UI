@@ -10,13 +10,16 @@ import {
     getRecipeOperationsPerSecond,
     type PlannerStackRate
 } from '../planner/calc/rates'
+import type { ExportStack } from '../types/recipe'
 
 interface PlannerRateBreakdownProps {
     recipe: NormalizedExportRecipe
     draft: PlannerDraft
+    onFindProducers: (stack: ExportStack) => void
+    onFindUses: (stack: ExportStack) => void
 }
 
-export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProps) {
+export function PlannerRateBreakdown({ recipe, draft, onFindProducers, onFindUses }: PlannerRateBreakdownProps) {
     const inputRates = getPlannedInputRates(recipe, draft)
     const outputRates = getPlannedOutputRates(recipe, draft)
     const operationsPerSecond = getRecipeOperationsPerSecond(recipe, draft)
@@ -66,7 +69,13 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
 
             <div className="planner-rate-columns">
                 <div className="planner-rate-list">
-                    <PlannerRateList title="Inputs / sec" recipe={recipe} rates={inputRates} />
+                    <PlannerRateList
+                        title="Inputs / sec"
+                        recipe={recipe}
+                        rates={inputRates}
+                        actionLabel="Find producers"
+                        onStackAction={onFindProducers}
+                    />
                 </div>
 
                 <div className="planner-rate-list">
@@ -74,6 +83,8 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
                         title="Target output / sec"
                         recipe={recipe}
                         rates={targetOutputRates}
+                        actionLabel="Find uses"
+                        onStackAction={onFindUses}
                     />
 
                     {byproductRates.length > 0 && (
@@ -81,6 +92,8 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
                             title="Byproducts / sec"
                             recipe={recipe}
                             rates={byproductRates}
+                            actionLabel="Find uses"
+                            onStackAction={onFindUses}
                         />
                     )}
                 </div>
@@ -93,9 +106,11 @@ interface PlannerRateListProps {
     title: string
     recipe: NormalizedExportRecipe
     rates: PlannerStackRate[]
+    actionLabel: string
+    onStackAction: (stack: ExportStack) => void
 }
 
-function PlannerRateList({ title, recipe, rates }: PlannerRateListProps) {
+function PlannerRateList({ title, recipe, rates, actionLabel, onStackAction }: PlannerRateListProps) {
     return (
         <div className="planner-rate-section">
             <h3>{title}</h3>
@@ -119,6 +134,14 @@ function PlannerRateList({ title, recipe, rates }: PlannerRateListProps) {
                                         {stack.unit}/s per machine
                                     </span>
                                 )}
+
+                                <button
+                                    className="stack-action-button"
+                                    type="button"
+                                    onClick={() => onStackAction(stack)}
+                                >
+                                    {actionLabel}
+                                </button>
                             </div>
                         </li>
                     ))}
