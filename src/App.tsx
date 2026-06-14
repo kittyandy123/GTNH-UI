@@ -270,6 +270,17 @@ function App() {
                     : undefined,
                 )
               }
+              onTargetOutputIndexChange={(targetOutputIndex) =>
+                setPlannerDraft((currentDraft) =>
+                  currentDraft
+                    ? {
+                        ...currentDraft,
+                        targetOutputIndex,
+                        targetRatePerSecond: undefined,
+                      }
+                    : undefined,
+                )
+              }
             />
         )}
 

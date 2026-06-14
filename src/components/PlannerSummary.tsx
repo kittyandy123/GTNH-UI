@@ -9,9 +9,10 @@ interface PlannerSummaryProps {
     onSelectRecipe: () => void
     onClearPlan: () => void
     onTargetRateChange: (targetRatePerSecond: number | undefined) => void
+    onTargetOutputIndexChange: (targetOutputIndex: number) => void
 }
 
-export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onTargetRateChange }: PlannerSummaryProps) {
+export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onTargetRateChange, onTargetOutputIndexChange }: PlannerSummaryProps) {
     const targetOutput = getPlannerTargetOutput(recipe, draft)
     const baseRate = getBaseOutputRatePerSecond(recipe, draft)
     const requiredMachines = getRequiredMachineCount(recipe, draft)
@@ -42,6 +43,27 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
             </div>
 
             <div className="planner-summary-actions">
+                {recipe.outputs.length > 1 && (
+                    <label className="target-output-field">
+                        <span>Target output</span>
+                        <select
+                            value={draft.targetOutputIndex}
+                            onChange={(event) => {
+                                onTargetOutputIndexChange(Number(event.target.value))
+                            }}
+                        >
+                            {recipe.outputs.map((output, index) => (
+                                <option
+                                    key={`${output.kind}:${output.id}:${output.meta}:${index}`}
+                                    value={index}
+                                >
+                                    {formatStackCompact(output)}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                )}
+
                 <label className="target-rate-field">
                     <span>Target / sec</span>
                     <input
