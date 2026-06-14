@@ -18,6 +18,7 @@ import { DiagnosticsGrid } from './components/DiagnosticsGrid'
 import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
 import { buildOutputGroups } from './lib/outputGroups'
+import { PlannerSummary } from './components/PlannerSummary'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -47,6 +48,7 @@ function App() {
   const [selectedOutputGroupKey, setSelectedOutputGroupKey] = useState<string | undefined>()
   const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
+  const [plannedRecipeId, setPlannedRecipeId] = useState<string | undefined>()
 
   useEffect(() => {
     let cancelled = false
@@ -137,6 +139,14 @@ function App() {
 
     return exportDocument.recipes.find((recipe) => recipe.id === selectedRecipeId)
   }, [exportDocument, selectedRecipeId])
+
+  const plannedRecipe = useMemo(() => {
+    if (!exportDocument || !plannedRecipeId) {
+      return undefined
+    }
+
+    return exportDocument.recipes.find((recipe) => recipe.id === plannedRecipeId)
+  }, [exportDocument, plannedRecipeId])
 
   function selectMachine(machineId: string | undefined) {
     setSelectedMachineId(machineId)
@@ -241,6 +251,14 @@ function App() {
           </div>
         </section>
 
+        {plannedRecipe && (
+            <PlannerSummary
+              recipe={plannedRecipe}
+              onSelectRecipe={() => setSelectedRecipeId(plannedRecipe.id)}
+              onClearPlan={() => setPlannedRecipeId(undefined)}
+            />
+        )}
+
         <section className="planner-layout">
           <MachineSidebar
             machineCounts={machineCounts}
@@ -284,6 +302,8 @@ function App() {
             {selectedRecipe ? (
                 <RecipeDetails
                     recipe={selectedRecipe}
+                    isPlanned={plannedRecipeId === selectedRecipe.id}
+                    onPlanRecipe={() => setPlannedRecipeId(selectedRecipe.id)}
                     onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
                     onFindUses={(stack) => navigateToStack(stack, 'inputs')}
                 />

@@ -6,14 +6,26 @@ interface RecipeDetailsProps {
     recipe: NormalizedExportRecipe
     onFindProducers: (stack: ExportStack) => void
     onFindUses: (stack: ExportStack) => void
+    onPlanRecipe: () => void
+    isPlanned: boolean
 }
 
-export function RecipeDetails({ recipe, onFindProducers, onFindUses }: RecipeDetailsProps) {
+export function RecipeDetails({ recipe, onFindProducers, onFindUses, onPlanRecipe, isPlanned }: RecipeDetailsProps) {
     return (
         <article className="recipe-detail-card">
             <div className="recipe-detail-header">
-                <h3>{recipe.machine.name}</h3>
-                <span>{recipe.machine.id}</span>
+                <div>
+                    <h3>{recipe.machine.name}</h3>
+                    <span>{recipe.machine.id}</span>
+                </div>
+
+                <button
+                    className={isPlanned ? 'primary-action-button active' : 'primary-action-button'}
+                    type="button"
+                    onClick={onPlanRecipe}
+                >
+                    {isPlanned ? 'Planned' : 'Plan this recipe'}
+                </button>
             </div>
 
             <dl className="recipe-stat-grid">
