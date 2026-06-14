@@ -36,3 +36,45 @@ export function getRoundedRequiredMachineCount(recipe: NormalizedExportRecipe, d
 
     return Math.ceil(requiredMachines)
 }
+
+export interface PlannerStackRate {
+    stack: ExportStack
+    ratePerSecond: number
+}
+
+export function getRecipeOperationsPerSecond(recipe: NormalizedExportRecipe, draft: PlannerDraft): number | undefined {
+    const targetRate = draft.targetRatePerSecond
+    const targetOutput = getPlannerTargetOutput(recipe, draft)
+
+    if (targetRate === undefined || targetRate <= 0 || !targetOutput || targetOutput.amount <= 0) {
+        return undefined
+    }
+
+    return targetRate / targetOutput.amount
+}
+
+export function getPlannedInputRates(recipe: NormalizedExportRecipe, draft: PlannerDraft): PlannerStackRate[] {
+    const operationsPerSecond = getRecipeOperationsPerSecond(recipe, draft)
+
+    if (operationsPerSecond === undefined) {
+        return []
+    }
+
+    return recipe.inputs.map((stack) => ({
+        stack,
+        ratePerSecond: stack.amount * operationsPerSecond,
+    }))
+}
+
+export function getPlannedOutputRates(recipe: NormalizedExportRecipe, draft: PlannerDraft): PlannerStackRate[] {
+    const operationsPerSecond = getRecipeOperationsPerSecond(recipe, draft)
+
+    if (operationsPerSecond === undefined) {
+        return []
+    }
+
+    return recipe.outputs.map((stack) => ({
+        stack,
+        ratePerSecond: stack.amount * operationsPerSecond,
+    }))
+}

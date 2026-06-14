@@ -20,6 +20,7 @@ import { RecipeResults } from './components/RecipeResults'
 import { buildOutputGroups } from './lib/outputGroups'
 import { PlannerSummary } from './components/PlannerSummary'
 import { createPlannerDraft, type PlannerDraft } from './planner/model/plannerDraft'
+import { PlannerRateBreakdown } from './components/PlannerRateBreakdown'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -282,6 +283,10 @@ function App() {
                 )
               }
             />
+        )}
+
+        {plannedRecipe && plannerDraft && (
+            <PlannerRateBreakdown recipe={plannedRecipe} draft={plannerDraft} />
         )}
 
         <section className="planner-layout">
