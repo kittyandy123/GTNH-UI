@@ -132,3 +132,15 @@ export function formatDecimal(value: number): string {
         maximumFractionDigits: 3,
     }).format(value)
 }
+
+export function formatMachineSummary(recipes: ExportRecipe[]): string {
+    const machineNames = Array.from(
+        new Set(recipes.map((recipe) => recipe.machine.name)),
+    )
+
+    if (machineNames.length <= 3) {
+        return machineNames.join(', ')
+    }
+
+    return `${machineNames.slice(0, 3).join(', ')} + ${machineNames.length - 3} more`
+}

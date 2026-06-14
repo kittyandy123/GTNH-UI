@@ -4,9 +4,7 @@ import { loadRecipeExport } from './lib/loadRecipes'
 import {
   formatDate,
   formatNumber,
-  formatRecipeStats,
   formatStackAmount,
-  formatStackCompact,
   formatStackIdentity,
   formatStackRate,
   formatStackSearchToken,
@@ -17,6 +15,9 @@ import { normalizeExportDocument } from './lib/normalizeExport'
 import type { SearchMode } from './lib/recipeHelpers'
 import type { ExportStack } from './types/recipe'
 import type { NormalizedExportDocument, NormalizedExportRecipe } from './lib/normalizeExport'
+import { OutputGroupCard } from './components/OutputGroupCard'
+import { RecipeCard } from './components/RecipeCard'
+import type { OutputRecipeGroup, ResultViewMode } from './types/recipeBrowser'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -28,18 +29,10 @@ const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
   { value: 'ids', label: 'IDs' },
 ]
 
-type ResultViewMode = 'exact' | 'output-index'
-
-const RESULT_VIEW_OPTIONS: { value: ResultViewMode; label: string}[] = [
+const RESULT_VIEW_OPTIONS: { value: ResultViewMode; label: string }[] = [
   { value: 'exact', label: 'Exact recipes' },
   { value: 'output-index', label: 'Output index' },
 ]
-
-interface OutputRecipeGroup {
-  key: string
-  output: ExportStack
-  recipes: NormalizedExportRecipe[]
-}
 
 type LoadState =
   | { status: 'loading' }
@@ -497,81 +490,6 @@ function MetricCard({ label, value }: MetricCardProps) {
   )
 }
 
-interface StackLineProps {
-  label: string
-  stacks: ExportStack[]
-}
-
-function StackLine({ label, stacks }: StackLineProps) {
-  return (
-      <div className="stack-line">
-        <span className="stack-line-label">{label}</span>
-        <span className="stack-line-value">
-          {stacks.length > 0
-            ? stacks.map(formatStackCompact).join(', ')
-            : 'None'}
-        </span>
-      </div>
-  )
-}
-
-interface RecipeCardProps {
-  recipe: NormalizedExportRecipe
-  active: boolean
-  onSelect: () => void
-}
-
-function RecipeCard({ recipe, active, onSelect }: RecipeCardProps) {
-  return (
-      <button
-        className={active ? 'recipe-card active' : 'recipe-card'}
-        type="button"
-        onClick={onSelect}
-      >
-        <div className="recipe-card-header">
-          <strong>{recipe.machine.name}</strong>
-          <span>{formatRecipeStats(recipe)}</span>
-        </div>
-
-        <StackLine label="In" stacks={recipe.inputs} />
-
-        {recipe.tools.length > 0 && <StackLine label="Tool" stacks={recipe.tools} />}
-
-        <StackLine label="Out" stacks={recipe.outputs} />
-      </button>
-  )
-}
-
-interface OutputGroupCardProps {
-  group: OutputRecipeGroup
-  active: boolean
-  onSelect: () => void
-}
-
-function OutputGroupCard({ group, active, onSelect }: OutputGroupCardProps) {
-  return (
-      <button
-        className={active ? 'recipe-card active' : 'recipe-card'}
-        type="button"
-        onClick={onSelect}
-      >
-        <div className="recipe-card-header">
-          <strong>{group.output.displayName }</strong>
-          <span>{formatNumber(group.recipes.length)} recipes</span>
-        </div>
-
-        <StackLine label="Out" stacks={[group.output]} />
-
-        <div className="stack-line">
-          <span className="stack-line-label">Via</span>
-          <span className="stack-line-value">
-            {formatMachineSummary(group.recipes)}
-          </span>
-        </div>
-      </button>
-  )
-}
-
 interface RecipeDetailsProps {
   recipe: NormalizedExportRecipe
   onFindProducers: (stack: ExportStack) => void
@@ -802,19 +720,6 @@ function getOutputGroupRelevance(group: OutputRecipeGroup, query: string): numbe
 
   return 0
 }
-
-function formatMachineSummary(recipes: NormalizedExportRecipe[]): string {
-  const machineNames = Array.from(
-      new Set(recipes.map((recipe) => recipe.machine.name)),
-  )
-
-  if (machineNames.length <= 3) {
-    return machineNames.join(', ')
-  }
-
-  return `${machineNames.slice(0, 3).join(', ')} + ${machineNames.length - 3} more`
-}
-
 
 function getRecipeResultSummary(loadState: LoadState, recipeCount: number, groupCount: number, resultViewMode: ResultViewMode, selectedOutputGroup: OutputRecipeGroup | undefined): string {
   if (loadState.status !== 'loaded') {
