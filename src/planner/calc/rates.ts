@@ -86,3 +86,28 @@ export function getPerMachineStackRate(stack: ExportStack, recipe: NormalizedExp
 
     return stack.amount / recipe.durationSeconds
 }
+
+export interface PlannerPowerEstimate {
+    recipeEuPerTick: number
+    exactMachineCount: number
+    roundedMachineCount: number
+    exactEuPerTick: number
+    roundedEuPerTick: number
+}
+
+export function getPlannerPowerEstimate(recipe: NormalizedExportRecipe, draft: PlannerDraft): PlannerPowerEstimate | undefined {
+    const exactMachineCount = getRequiredMachineCount(recipe, draft)
+    const roundedMachineCount = getRoundedRequiredMachineCount(recipe, draft)
+
+    if (exactMachineCount === undefined || roundedMachineCount === undefined || recipe.eut <= 0) {
+        return undefined
+    }
+
+    return {
+        recipeEuPerTick: recipe.eut,
+        exactMachineCount,
+        roundedMachineCount,
+        exactEuPerTick: recipe.eut * exactMachineCount,
+        roundedEuPerTick: recipe.eut * roundedMachineCount,
+    }
+}

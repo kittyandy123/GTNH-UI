@@ -1,7 +1,14 @@
-import { formatDecimal, formatStackIdentity } from '../lib/recipeHelpers'
+import { formatDecimal, formatNumber, formatStackIdentity } from '../lib/recipeHelpers'
 import type { NormalizedExportRecipe } from '../lib/normalizeExport'
 import type { PlannerDraft } from '../planner/model/plannerDraft'
-import { getPerMachineStackRate, getPlannedInputRates, getPlannedOutputRates, getRecipeOperationsPerSecond, type PlannerStackRate } from '../planner/calc/rates'
+import {
+    getPerMachineStackRate,
+    getPlannedInputRates,
+    getPlannedOutputRates,
+    getPlannerPowerEstimate,
+    getRecipeOperationsPerSecond,
+    type PlannerStackRate
+} from '../planner/calc/rates'
 
 interface PlannerRateBreakdownProps {
     recipe: NormalizedExportRecipe
@@ -12,6 +19,7 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
     const inputRates = getPlannedInputRates(recipe, draft)
     const outputRates = getPlannedOutputRates(recipe, draft)
     const operationsPerSecond = getRecipeOperationsPerSecond(recipe, draft)
+    const powerEstimate = getPlannerPowerEstimate(recipe, draft)
 
     if (draft.targetRatePerSecond === undefined) {
         return null
@@ -28,6 +36,21 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
                     <p className="planner-rate-note">
                         Recipe operations: {formatDecimal(operationsPerSecond)} / sec
                     </p>
+                )}
+                {powerEstimate && (
+                    <div className="planner-power-summary">
+                        <span>
+                            Recipe draw: <strong>{formatNumber(powerEstimate.recipeEuPerTick)} EU/t</strong>
+                        </span>
+                        <span>
+                            Average draw:{' '}
+                            <strong>{formatDecimal(powerEstimate.exactEuPerTick)} EU/t</strong>
+                        </span>
+                        <span>
+                            Installed draw:{' '}
+                            <strong>{formatNumber(powerEstimate.roundedEuPerTick)} EU/t</strong>
+                        </span>
+                    </div>
                 )}
             </div>
 
