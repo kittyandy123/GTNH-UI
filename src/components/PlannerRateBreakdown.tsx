@@ -1,7 +1,7 @@
 import { formatDecimal, formatStackIdentity } from '../lib/recipeHelpers'
 import type { NormalizedExportRecipe } from '../lib/normalizeExport'
 import type { PlannerDraft } from '../planner/model/plannerDraft'
-import { getPlannedInputRates, getPlannedOutputRates, type PlannerStackRate } from '../planner/calc/rates'
+import { getPerMachineStackRate, getPlannedInputRates, getPlannedOutputRates, getRecipeOperationsPerSecond, type PlannerStackRate } from '../planner/calc/rates'
 
 interface PlannerRateBreakdownProps {
     recipe: NormalizedExportRecipe
@@ -11,6 +11,7 @@ interface PlannerRateBreakdownProps {
 export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProps) {
     const inputRates = getPlannedInputRates(recipe, draft)
     const outputRates = getPlannedOutputRates(recipe, draft)
+    const operationsPerSecond = getRecipeOperationsPerSecond(recipe, draft)
 
     if (draft.targetRatePerSecond === undefined) {
         return null
@@ -23,11 +24,16 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
                 <p>
                     Scaled rates for the selected recipe only. Dependency solving comes later.
                 </p>
+                {operationsPerSecond !== undefined && (
+                    <p className="planner-rate-note">
+                        Recipe operations: {formatDecimal(operationsPerSecond)} / sec
+                    </p>
+                )}
             </div>
 
             <div className="planner-rate-columns">
-                <PlannerRateList title="Inputs / sec" rates={inputRates} />
-                <PlannerRateList title="Outputs / sec" rates={outputRates} />
+                <PlannerRateList title="Inputs / sec" recipe={recipe} rates={inputRates} />
+                <PlannerRateList title="Outputs / sec" recipe={recipe} rates={outputRates} />
             </div>
         </section>
     )
@@ -35,10 +41,11 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
 
 interface PlannerRateListProps {
     title: string
+    recipe: NormalizedExportRecipe
     rates: PlannerStackRate[]
 }
 
-function PlannerRateList({ title, rates }: PlannerRateListProps) {
+function PlannerRateList({ title, recipe, rates }: PlannerRateListProps) {
     return (
         <div className="planner-rate-list">
             <h3>{title}</h3>
@@ -51,9 +58,18 @@ function PlannerRateList({ title, rates }: PlannerRateListProps) {
                                 <strong>{stack.displayName}</strong>
                                 <span>{formatStackIdentity(stack)}</span>
                             </div>
-                            <em>
-                                {formatDecimal(ratePerSecond)} {stack.unit}/s
-                            </em>
+                            <div className="planner-rate-values">
+                                <em>
+                                    {formatDecimal(ratePerSecond)} {stack.unit}/s total
+                                </em>
+
+                                {getPerMachineStackRate(stack, recipe) !== undefined && (
+                                    <span>
+                                        {formatDecimal(getPerMachineStackRate(stack, recipe)!)}{' '}
+                                        {stack.unit}/s per machine
+                                    </span>
+                                )}
+                            </div>
                         </li>
                     ))}
                 </ul>

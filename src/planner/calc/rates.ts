@@ -78,3 +78,11 @@ export function getPlannedOutputRates(recipe: NormalizedExportRecipe, draft: Pla
         ratePerSecond: stack.amount * operationsPerSecond,
     }))
 }
+
+export function getPerMachineStackRate(stack: ExportStack, recipe: NormalizedExportRecipe): number | undefined {
+    if (recipe.durationSeconds <= 0) {
+        return undefined
+    }
+
+    return stack.amount / recipe.durationSeconds
+}
