@@ -6,6 +6,7 @@ import {
     getPlannedInputRates,
     getPlannedOutputRates,
     getPlannerPowerEstimate,
+    getPlannerTargetOutput,
     getRecipeOperationsPerSecond,
     type PlannerStackRate
 } from '../planner/calc/rates'
@@ -20,6 +21,15 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
     const outputRates = getPlannedOutputRates(recipe, draft)
     const operationsPerSecond = getRecipeOperationsPerSecond(recipe, draft)
     const powerEstimate = getPlannerPowerEstimate(recipe, draft)
+    const targetOutput = getPlannerTargetOutput(recipe, draft)
+
+    const targetOutputRates = targetOutput
+        ? outputRates.filter(({ stack }) => stack === targetOutput)
+        : []
+
+    const byproductRates = targetOutput
+        ? outputRates.filter(({ stack }) => stack !== targetOutput)
+        : outputRates
 
     if (draft.targetRatePerSecond === undefined) {
         return null
@@ -55,8 +65,25 @@ export function PlannerRateBreakdown({ recipe, draft }: PlannerRateBreakdownProp
             </div>
 
             <div className="planner-rate-columns">
-                <PlannerRateList title="Inputs / sec" recipe={recipe} rates={inputRates} />
-                <PlannerRateList title="Outputs / sec" recipe={recipe} rates={outputRates} />
+                <div className="planner-rate-list">
+                    <PlannerRateList title="Inputs / sec" recipe={recipe} rates={inputRates} />
+                </div>
+
+                <div className="planner-rate-list">
+                    <PlannerRateList
+                        title="Target output / sec"
+                        recipe={recipe}
+                        rates={targetOutputRates}
+                    />
+
+                    {byproductRates.length > 0 && (
+                        <PlannerRateList
+                            title="Byproducts / sec"
+                            recipe={recipe}
+                            rates={byproductRates}
+                        />
+                    )}
+                </div>
             </div>
         </section>
     )
@@ -70,7 +97,7 @@ interface PlannerRateListProps {
 
 function PlannerRateList({ title, recipe, rates }: PlannerRateListProps) {
     return (
-        <div className="planner-rate-list">
+        <div className="planner-rate-section">
             <h3>{title}</h3>
 
             {rates.length > 0 ? (
