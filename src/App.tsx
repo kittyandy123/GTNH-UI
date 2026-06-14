@@ -4,7 +4,6 @@ import { loadRecipeExport } from './lib/loadRecipes'
 import {
   formatDate,
   formatNumber,
-  formatStackIdentity,
   formatStackSearchToken,
   normalizeSearchText,
   recipeMatchesQuery,
@@ -12,12 +11,13 @@ import {
 import { normalizeExportDocument } from './lib/normalizeExport'
 import type { SearchMode } from './lib/recipeHelpers'
 import type { ExportStack } from './types/recipe'
-import type { NormalizedExportDocument, NormalizedExportRecipe } from './lib/normalizeExport'
-import type { OutputRecipeGroup, ResultViewMode } from './types/recipeBrowser'
+import type { NormalizedExportDocument } from './lib/normalizeExport'
+import type { ResultViewMode } from './types/recipeBrowser'
 import { RecipeDetails } from './components/RecipeDetails'
 import { DiagnosticsGrid } from './components/DiagnosticsGrid'
 import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
+import { buildOutputGroups } from './lib/outputGroups'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -316,91 +316,6 @@ function App() {
         </section>
       </main>
   )
-}
-
-function buildOutputGroups(recipes: NormalizedExportRecipe[], searchText: string): OutputRecipeGroup[] {
-  const query = normalizeSearchText(searchText)
-  const groups = new Map<string, OutputRecipeGroup>()
-
-  for (const recipe of recipes) {
-    for (const output of recipe.outputs) {
-      const key = getOutputStackKey(output)
-      const existingGroup = groups.get(key)
-
-      if (existingGroup) {
-        existingGroup.recipes.push(recipe)
-        continue
-      }
-
-      groups.set(key, {
-        key,
-        output,
-        recipes: [recipe],
-      })
-    }
-  }
-
-  return Array.from(groups.values()).sort((left, right) =>
-    compareOutputGroups(left, right, query),
-  )
-}
-
-function getOutputStackKey(output: ExportStack): string {
-  if (output.kind === 'fluid') {
-    return `${output.kind}:${output.id}`
-  }
-
-  return `${output.kind}:${output.id}:${output.meta}`
-}
-
-function compareOutputGroups(left: OutputRecipeGroup, right: OutputRecipeGroup, query: string): number {
-  const relevanceComparison = getOutputGroupRelevance(right, query) - getOutputGroupRelevance(left, query)
-
-  if (relevanceComparison !== 0) {
-    return relevanceComparison
-  }
-
-  if (query) {
-    const countComparison = right.recipes.length - left.recipes.length
-
-    if (countComparison !== 0) {
-      return countComparison
-    }
-  }
-
-  const nameComparison = left.output.displayName.localeCompare(right.output.displayName)
-
-  if (nameComparison !== 0) {
-    return nameComparison
-  }
-
-  return right.recipes.length - left.recipes.length
-}
-
-function getOutputGroupRelevance(group: OutputRecipeGroup, query: string): number {
-  if (!query) {
-    return 0
-  }
-
-  const values = [
-      group.output.displayName,
-      group.output.id,
-      formatStackIdentity(group.output),
-  ].map((value) => value.toLowerCase())
-
-  if (values.some((value) => value === query)) {
-    return 4
-  }
-
-  if (values.some((value) => value.startsWith(query))) {
-    return 3
-  }
-
-  if (values.some((value) => value.includes(query))) {
-    return 2
-  }
-
-  return 0
 }
 
 function getStatusText(loadState: LoadState): string {
