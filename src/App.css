@@ -647,6 +647,30 @@
   background: var(--accent-bg);
 }
 
+.planner-rate-note {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.target-rate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.target-rate-field input {
+  width: 120px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--text-h);
+  background: var(--input-bg);
+}
+
 @media (max-width: 1100px) {
   .planner-layout {
     grid-template-columns: 1fr;

@@ -254,11 +254,22 @@ function App() {
           </div>
         </section>
 
-        {plannedRecipe && (
+        {plannedRecipe && plannerDraft && (
             <PlannerSummary
               recipe={plannedRecipe}
+              draft={plannerDraft}
               onSelectRecipe={() => setSelectedRecipeId(plannedRecipe.id)}
               onClearPlan={() => setPlannerDraft(undefined)}
+              onTargetRateChange={(targetRatePerSecond) =>
+                setPlannerDraft((currentDraft) =>
+                  currentDraft
+                    ? {
+                        ...currentDraft,
+                        targetRatePerSecond,
+                      }
+                    : undefined,
+                )
+              }
             />
         )}
 
