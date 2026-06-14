@@ -17,6 +17,8 @@ import { OutputGroupCard } from './components/OutputGroupCard'
 import { RecipeCard } from './components/RecipeCard'
 import type { OutputRecipeGroup, ResultViewMode } from './types/recipeBrowser'
 import { RecipeDetails } from './components/RecipeDetails'
+import { DiagnosticsGrid } from './components/DiagnosticsGrid'
+import { MachineSidebar } from './components/MachineSidebar'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -167,36 +169,7 @@ function App() {
         </header>
 
         {loadState.status === 'loaded' && (
-            <section className="diagnostics-grid" aria-label="Export diagnostics">
-              <MetricCard
-                label="Total recipes"
-                value={formatNumber(loadState.data.diagnostics.totalRecipes)}
-              />
-              <MetricCard
-                label="Duplicate recipes skipped"
-                value={formatNumber(loadState.data.diagnostics.duplicateRecipesSkipped)}
-              />
-              <MetricCard
-                label="Display name fallbacks"
-                value={formatNumber(loadState.data.diagnostics.displayNameFallbacks)}
-              />
-              <MetricCard
-                label="Recipe errors"
-                value={formatNumber(loadState.data.diagnostics.recipesSkippedDueToError)}
-              />
-              {loadState.data.diagnostics.toolInputsExtracted !== undefined && (
-                  <MetricCard
-                    label="Tool inputs extracted"
-                    value={formatNumber(loadState.data.diagnostics.toolInputsExtracted)}
-                  />
-              )}
-              {loadState.data.diagnostics.zeroAmountInputsRemaining !== undefined && (
-                  <MetricCard
-                    label="Zero-amount inputs remaining"
-                    value={formatNumber(loadState.data.diagnostics.zeroAmountInputsRemaining)}
-                  />
-              )}
-            </section>
+            <DiagnosticsGrid diagnostics={loadState.data.diagnostics} />
         )}
 
         {loadState.status === 'error' && (
@@ -270,53 +243,12 @@ function App() {
         </section>
 
         <section className="planner-layout">
-          <aside className="machine-sidebar" aria-label="Machine filters">
-            <div className="panel-heading">
-              <h2>Machines</h2>
-              <p>
-                {loadState.status === 'loaded'
-                  ? `${machineCounts.length} recipe maps loaded.`
-                  : 'Recipe counts will appear here.'}
-              </p>
-            </div>
-
-            {loadState.status === 'loaded' ? (
-                <div className="machine-list">
-                  <button
-                    className={
-                    selectedMachineId === undefined
-                        ? 'machine-button active'
-                        : 'machine-button'
-                    }
-                    type="button"
-                    onClick={() => selectMachine(undefined)}
-                  >
-                    <span>All machines</span>
-                    <strong>{formatNumber(loadState.data.recipes.length)}</strong>
-                  </button>
-
-                  {machineCounts.map((machine) => (
-                      <button
-                        className={
-                        selectedMachineId === machine.machineId
-                            ? 'machine-button active'
-                            : 'machine-button'
-                        }
-                        key={machine.machineId}
-                        type="button"
-                        onClick={() => selectMachine(machine.machineId)}
-                      >
-                        <span>{machine.machineId}</span>
-                        <strong>{formatNumber(machine.count)}</strong>
-                      </button>
-                  ))}
-                </div>
-            ) : (
-                <div className="empty-card">
-                  Load <code>recipes.json</code> to view machine filters.
-                </div>
-            )}
-          </aside>
+          <MachineSidebar
+            machineCounts={machineCounts}
+            selectedMachineId={selectedMachineId}
+            loaded={loadState.status === 'loaded'}
+            onSelectMachine={selectMachine}
+          />
 
           <section className="recipe-results" aria-label="Recipe results">
             <div className="panel-heading">
@@ -472,20 +404,6 @@ function App() {
           </aside>
         </section>
       </main>
-  )
-}
-
-interface MetricCardProps {
-  label: string
-  value: string
-}
-
-function MetricCard({ label, value }: MetricCardProps) {
-  return (
-      <article className="metric-card">
-        <span>{label}</span>
-        <strong>{value}</strong>
-      </article>
   )
 }
 
