@@ -92,6 +92,22 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
                             )
                         }}
                     />
+
+                    <div className="target-rate-presets">
+                        {[1, 5, 10].map((rate) => (
+                            <button
+                              key={rate}
+                              type="button"
+                              onClick={() => onTargetRateChange(rate)}
+                            >
+                                {rate}/s
+                            </button>
+                        ))}
+
+                        <button type="button" onClick={() => onTargetRateChange(undefined)}>
+                            Clear
+                        </button>
+                    </div>
                 </label>
 
                 <button className="secondary-action-button" type="button" onClick={onSelectRecipe}>
