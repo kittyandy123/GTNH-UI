@@ -28,16 +28,16 @@ const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
   { value: 'ids', label: 'IDs' },
 ]
 
-type ResultViewMode = 'exact' | 'grouped-output'
+type ResultViewMode = 'exact' | 'output-index'
 
 const RESULT_VIEW_OPTIONS: { value: ResultViewMode; label: string}[] = [
   { value: 'exact', label: 'Exact recipes' },
-  { value: 'grouped-output', label: 'Group by output' },
+  { value: 'output-index', label: 'Output index' },
 ]
 
 interface OutputRecipeGroup {
   key: string
-  output: ExportStack | undefined
+  output: ExportStack
   recipes: NormalizedExportRecipe[]
 }
 
@@ -51,6 +51,7 @@ function App() {
   const [searchText, setSearchText] = useState('')
   const [searchMode, setSearchMode] = useState<SearchMode>('all')
   const [resultViewMode, setResultViewMode] = useState<ResultViewMode>('exact')
+  const [selectedOutputGroupKey, setSelectedOutputGroupKey] = useState<string | undefined>()
   const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
 
@@ -120,11 +121,21 @@ function App() {
   const visibleRecipes = filteredRecipes.slice(0, MAX_VISIBLE_RECIPES)
 
   const outputGroups = useMemo(
-      () => buildOutputGroups(filteredRecipes),
-      [filteredRecipes],
+      () => buildOutputGroups(filteredRecipes, searchText),
+      [filteredRecipes, searchText],
   )
 
+  const selectedOutputGroup = useMemo(() => {
+    if (!selectedOutputGroupKey) {
+      return undefined
+    }
+
+    return outputGroups.find((group) => group.key === selectedOutputGroupKey)
+  }, [outputGroups, selectedOutputGroupKey])
+
   const visibleOutputGroups = outputGroups.slice(0, MAX_VISIBLE_RECIPES)
+
+  const visibleOutputGroupRecipes = selectedOutputGroup?.recipes.slice(0, MAX_VISIBLE_RECIPES) ?? []
 
   const selectedRecipe = useMemo(() => {
     if (!exportDocument || !selectedRecipeId) {
@@ -137,13 +148,16 @@ function App() {
   function selectMachine(machineId: string | undefined) {
     setSelectedMachineId(machineId)
     setSelectedRecipeId(undefined)
+    setSelectedOutputGroupKey(undefined)
   }
 
   function navigateToStack(stack: ExportStack, mode: SearchMode) {
     setSearchText(formatStackSearchToken(stack))
     setSearchMode(mode)
+    setResultViewMode('exact')
     setSelectedMachineId(undefined)
     setSelectedRecipeId(undefined)
+    setSelectedOutputGroupKey(undefined)
   }
 
   return (
@@ -214,6 +228,7 @@ function App() {
             onChange={(event) => {
               setSearchText(event.target.value)
               setSelectedRecipeId(undefined)
+              setSelectedOutputGroupKey(undefined)
             }}
           />
 
@@ -231,6 +246,7 @@ function App() {
                   onClick={() => {
                     setSearchMode(option.value)
                     setSelectedRecipeId(undefined)
+                    setSelectedOutputGroupKey(undefined)
                   }}
                 >
                   {option.label}
@@ -252,6 +268,7 @@ function App() {
                     onClick={() => {
                       setResultViewMode(option.value)
                       setSelectedRecipeId(undefined)
+                      setSelectedOutputGroupKey(undefined)
                     }}
                 >
                   {option.label}
@@ -318,6 +335,7 @@ function App() {
                     filteredRecipes.length,
                     outputGroups.length,
                     resultViewMode,
+                    selectedOutputGroup,
                 )}
               </p>
             </div>
@@ -332,29 +350,12 @@ function App() {
                   ) : resultViewMode === 'exact' ? (
                       <>
                         {visibleRecipes.map((recipe) => (
-                            <button
-                                className={
-                                  selectedRecipeId === recipe.id
-                                      ? 'recipe-card active'
-                                      : 'recipe-card'
-                                }
+                            <RecipeCard
+                                active={selectedRecipeId === recipe.id}
                                 key={recipe.id}
-                                type="button"
-                                onClick={() => setSelectedRecipeId(recipe.id)}
-                            >
-                              <div className="recipe-card-header">
-                                <strong>{recipe.machine.name}</strong>
-                                <span>{formatRecipeStats(recipe)}</span>
-                              </div>
-
-                              <StackLine label="In" stacks={recipe.inputs} />
-
-                              {recipe.tools.length > 0 && (
-                                  <StackLine label="Tool" stacks={recipe.tools} />
-                              )}
-
-                              <StackLine label="Out" stacks={recipe.outputs} />
-                            </button>
+                                recipe={recipe}
+                                onSelect={() => setSelectedRecipeId(recipe.id)}
+                            />
                         ))}
 
                         {filteredRecipes.length > MAX_VISIBLE_RECIPES && (
@@ -365,24 +366,64 @@ function App() {
                             </div>
                         )}
                       </>
+                  ) : selectedOutputGroup ? (
+                      <>
+                        <div className="group-drilldown-header">
+                          <button
+                              className="group-back-button"
+                              type="button"
+                              onClick={() => {
+                                setSelectedOutputGroupKey(undefined)
+                                setSelectedRecipeId(undefined)
+                              }}
+                          >
+                            ← Back to output index
+                          </button>
+
+                          <div className="group-drilldown-title">
+                            <strong>{selectedOutputGroup.output.displayName}</strong>
+                            <span>
+                              {formatNumber(selectedOutputGroup.recipes.length)} exact recipes
+                            </span>
+                          </div>
+                        </div>
+
+                        {visibleOutputGroupRecipes.map((recipe) => (
+                            <RecipeCard
+                                active={selectedRecipeId === recipe.id}
+                                key={recipe.id}
+                                recipe={recipe}
+                                onSelect={() => setSelectedRecipeId(recipe.id)}
+                            />
+                        ))}
+
+                        {selectedOutputGroup.recipes.length > MAX_VISIBLE_RECIPES && (
+                            <div className="recipe-limit-note">
+                              Showing first {formatNumber(MAX_VISIBLE_RECIPES)} of{' '}
+                              {formatNumber(selectedOutputGroup.recipes.length)} recipes producing{' '}
+                              {selectedOutputGroup.output.displayName}. Refine your search to narrow
+                              the list.
+                            </div>
+                        )}
+                      </>
                   ) : (
                       <>
                         {visibleOutputGroups.map((group) => (
                             <OutputGroupCard
-                                active={
-                                    selectedRecipeId !== undefined &&
-                                    group.recipes.some((recipe) => recipe.id === selectedRecipeId)
-                                }
+                                active={selectedOutputGroupKey === group.key}
                                 group={group}
                                 key={group.key}
-                                onSelect={() => setSelectedRecipeId(group.recipes[0].id)}
+                                onSelect={() => {
+                                  setSelectedOutputGroupKey(group.key)
+                                  setSelectedRecipeId(group.recipes[0]?.id)
+                                }}
                             />
                         ))}
 
                         {outputGroups.length > MAX_VISIBLE_RECIPES && (
                             <div className="recipe-limit-note">
                               Showing first {formatNumber(MAX_VISIBLE_RECIPES)} of{' '}
-                              {formatNumber(outputGroups.length)} output groups. Refine your search
+                              {formatNumber(outputGroups.length)} output entries. Refine your search
                               to narrow the list.
                             </div>
                         )}
@@ -474,15 +515,13 @@ function StackLine({ label, stacks }: StackLineProps) {
   )
 }
 
-interface OutputGroupCardProps {
-  group: OutputRecipeGroup
+interface RecipeCardProps {
+  recipe: NormalizedExportRecipe
   active: boolean
   onSelect: () => void
 }
 
-function OutputGroupCard({ group, active, onSelect }: OutputGroupCardProps) {
-  const outputStacks = group.output ? [group.output] : []
-
+function RecipeCard({ recipe, active, onSelect }: RecipeCardProps) {
   return (
       <button
         className={active ? 'recipe-card active' : 'recipe-card'}
@@ -490,11 +529,38 @@ function OutputGroupCard({ group, active, onSelect }: OutputGroupCardProps) {
         onClick={onSelect}
       >
         <div className="recipe-card-header">
-          <strong>{group.output?.displayName ?? 'No output'}</strong>
+          <strong>{recipe.machine.name}</strong>
+          <span>{formatRecipeStats(recipe)}</span>
+        </div>
+
+        <StackLine label="In" stacks={recipe.inputs} />
+
+        {recipe.tools.length > 0 && <StackLine label="Tool" stacks={recipe.tools} />}
+
+        <StackLine label="Out" stacks={recipe.outputs} />
+      </button>
+  )
+}
+
+interface OutputGroupCardProps {
+  group: OutputRecipeGroup
+  active: boolean
+  onSelect: () => void
+}
+
+function OutputGroupCard({ group, active, onSelect }: OutputGroupCardProps) {
+  return (
+      <button
+        className={active ? 'recipe-card active' : 'recipe-card'}
+        type="button"
+        onClick={onSelect}
+      >
+        <div className="recipe-card-header">
+          <strong>{group.output.displayName }</strong>
           <span>{formatNumber(group.recipes.length)} recipes</span>
         </div>
 
-        <StackLine label="Out" stacks={outputStacks} />
+        <StackLine label="Out" stacks={[group.output]} />
 
         <div className="stack-line">
           <span className="stack-line-label">Via</span>
@@ -652,37 +718,34 @@ function MetadataList({ recipe }: MetadataListProps) {
   )
 }
 
-function buildOutputGroups(recipes: NormalizedExportRecipe[]): OutputRecipeGroup[] {
+function buildOutputGroups(recipes: NormalizedExportRecipe[], searchText: string): OutputRecipeGroup[] {
+  const query = normalizeSearchText(searchText)
   const groups = new Map<string, OutputRecipeGroup>()
 
   for (const recipe of recipes) {
-    const output = recipe.outputs[0]
-    const key = getOutputGroupKey(recipe)
+    for (const output of recipe.outputs) {
+      const key = getOutputStackKey(output)
+      const existingGroup = groups.get(key)
 
-    const existingGroup = groups.get(key)
+      if (existingGroup) {
+        existingGroup.recipes.push(recipe)
+        continue
+      }
 
-    if (existingGroup) {
-      existingGroup.recipes.push(recipe)
-      continue
+      groups.set(key, {
+        key,
+        output,
+        recipes: [recipe],
+      })
     }
-
-    groups.set(key, {
-      key,
-      output,
-      recipes: [recipe],
-    })
   }
 
-  return Array.from(groups.values()).sort(compareOutputGroups)
+  return Array.from(groups.values()).sort((left, right) =>
+    compareOutputGroups(left, right, query),
+  )
 }
 
-function getOutputGroupKey(recipe: NormalizedExportRecipe): string {
-  const output = recipe.outputs[0]
-
-  if (!output) {
-    return `recipe:${recipe.id}`
-  }
-
+function getOutputStackKey(output: ExportStack): string {
   if (output.kind === 'fluid') {
     return `${output.kind}:${output.id}`
   }
@@ -690,16 +753,54 @@ function getOutputGroupKey(recipe: NormalizedExportRecipe): string {
   return `${output.kind}:${output.id}:${output.meta}`
 }
 
-function compareOutputGroups(left: OutputRecipeGroup, right: OutputRecipeGroup): number {
-  const countComparison = right.recipes.length - left.recipes.length
+function compareOutputGroups(left: OutputRecipeGroup, right: OutputRecipeGroup, query: string): number {
+  const relevanceComparison = getOutputGroupRelevance(right, query) - getOutputGroupRelevance(left, query)
 
-  if (countComparison !==0) {
-    return countComparison
+  if (relevanceComparison !== 0) {
+    return relevanceComparison
   }
 
-  return (left.output?.displayName ?? '').localeCompare(
-      right.output?.displayName ?? '',
-  )
+  if (query) {
+    const countComparison = right.recipes.length - left.recipes.length
+
+    if (countComparison !== 0) {
+      return countComparison
+    }
+  }
+
+  const nameComparison = left.output.displayName.localeCompare(right.output.displayName)
+
+  if (nameComparison !== 0) {
+    return nameComparison
+  }
+
+  return right.recipes.length - left.recipes.length
+}
+
+function getOutputGroupRelevance(group: OutputRecipeGroup, query: string): number {
+  if (!query) {
+    return 0
+  }
+
+  const values = [
+      group.output.displayName,
+      group.output.id,
+      formatStackIdentity(group.output),
+  ].map((value) => value.toLowerCase())
+
+  if (values.some((value) => value === query)) {
+    return 4
+  }
+
+  if (values.some((value) => value.startsWith(query))) {
+    return 3
+  }
+
+  if (values.some((value) => value.includes(query))) {
+    return 2
+  }
+
+  return 0
 }
 
 function formatMachineSummary(recipes: NormalizedExportRecipe[]): string {
@@ -715,13 +816,17 @@ function formatMachineSummary(recipes: NormalizedExportRecipe[]): string {
 }
 
 
-function getRecipeResultSummary(loadState: LoadState, recipeCount: number, groupCount: number, resultViewMode: ResultViewMode): string {
+function getRecipeResultSummary(loadState: LoadState, recipeCount: number, groupCount: number, resultViewMode: ResultViewMode, selectedOutputGroup: OutputRecipeGroup | undefined): string {
   if (loadState.status !== 'loaded') {
     return 'Search results will appear here.'
   }
 
-  if (resultViewMode === 'grouped-output') {
-    return `${formatNumber(groupCount)} output groups from ${formatNumber(recipeCount)} matching recipes.`
+  if (resultViewMode === 'output-index') {
+    if (selectedOutputGroup) {
+      return `${formatNumber(selectedOutputGroup.recipes.length)} exact recipes producing ${selectedOutputGroup.output.displayName}.`
+    }
+
+    return `${formatNumber(groupCount)} output entries from ${formatNumber(recipeCount)} matching recipes.`
   }
 
   return `${formatNumber(recipeCount)} matching recipes.`
