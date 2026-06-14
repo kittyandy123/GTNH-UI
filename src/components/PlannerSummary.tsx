@@ -1,7 +1,7 @@
 import { formatDecimal, formatRecipeStats, formatStackCompact } from '../lib/recipeHelpers'
 import type { NormalizedExportRecipe } from '../lib/normalizeExport'
 import type { PlannerDraft } from '../planner/model/plannerDraft'
-import { getBaseOutputRatePerSecond, getPlannerTargetOutput, getRequiredMachineCount } from '../planner/calc/rates'
+import { getBaseOutputRatePerSecond, getPlannerTargetOutput, getRequiredMachineCount, getRoundedRequiredMachineCount } from '../planner/calc/rates'
 
 interface PlannerSummaryProps {
     recipe: NormalizedExportRecipe
@@ -16,6 +16,7 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
     const targetOutput = getPlannerTargetOutput(recipe, draft)
     const baseRate = getBaseOutputRatePerSecond(recipe, draft)
     const requiredMachines = getRequiredMachineCount(recipe, draft)
+    const roundedRequiredMachines = getRoundedRequiredMachineCount(recipe, draft)
 
     return (
         <section className="planner-summary" aria-label="Planner draft">
@@ -37,7 +38,10 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
 
                 {requiredMachines !== undefined && (
                     <p className="planner-rate-note">
-                        Estimated machines: {formatDecimal(requiredMachines)}
+                        Estimated machines: {formatDecimal(requiredMachines)} exact
+                        {roundedRequiredMachines !== undefined && (
+                            <> · build {roundedRequiredMachines}</>
+                        )}
                     </p>
                 )}
             </div>

@@ -26,3 +26,13 @@ export function getRequiredMachineCount(recipe: NormalizedExportRecipe, draft: P
 
     return targetRate / baseRate
 }
+
+export function getRoundedRequiredMachineCount(recipe: NormalizedExportRecipe, draft: PlannerDraft): number | undefined {
+    const requiredMachines = getRequiredMachineCount(recipe, draft)
+
+    if (requiredMachines === undefined) {
+        return undefined
+    }
+
+    return Math.ceil(requiredMachines)
+}
