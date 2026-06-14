@@ -19,6 +19,7 @@ import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
 import { buildOutputGroups } from './lib/outputGroups'
 import { PlannerSummary } from './components/PlannerSummary'
+import { createPlannerDraft, type PlannerDraft } from './planner/model/plannerDraft'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -48,7 +49,9 @@ function App() {
   const [selectedOutputGroupKey, setSelectedOutputGroupKey] = useState<string | undefined>()
   const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
-  const [plannedRecipeId, setPlannedRecipeId] = useState<string | undefined>()
+  const [plannerDraft, setPlannerDraft] = useState<PlannerDraft | undefined>()
+
+  const plannedRecipeId = plannerDraft?.recipeId
 
   useEffect(() => {
     let cancelled = false
@@ -255,7 +258,7 @@ function App() {
             <PlannerSummary
               recipe={plannedRecipe}
               onSelectRecipe={() => setSelectedRecipeId(plannedRecipe.id)}
-              onClearPlan={() => setPlannedRecipeId(undefined)}
+              onClearPlan={() => setPlannerDraft(undefined)}
             />
         )}
 
@@ -303,7 +306,7 @@ function App() {
                 <RecipeDetails
                     recipe={selectedRecipe}
                     isPlanned={plannedRecipeId === selectedRecipe.id}
-                    onPlanRecipe={() => setPlannedRecipeId(selectedRecipe.id)}
+                    onPlanRecipe={() => setPlannerDraft(createPlannerDraft(selectedRecipe))}
                     onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
                     onFindUses={(stack) => navigateToStack(stack, 'inputs')}
                 />
