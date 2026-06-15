@@ -21,6 +21,7 @@ import { buildOutputGroups } from './lib/outputGroups'
 import { PlannerSummary } from './components/PlannerSummary'
 import { createPlannerDraft, type PlannerDraft } from './planner/model/plannerDraft'
 import { PlannerRateBreakdown } from './components/PlannerRateBreakdown'
+import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -42,6 +43,11 @@ type LoadState =
   | { status: 'loaded'; data: NormalizedExportDocument }
   | { status: 'error'; message: string }
 
+interface PlannerNavigationContext {
+  stack: ExportStack
+  purpose: PlannerNavigationPurpose
+}
+
 function App() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [searchText, setSearchText] = useState('')
@@ -51,6 +57,7 @@ function App() {
   const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
   const [plannerDraft, setPlannerDraft] = useState<PlannerDraft | undefined>()
+  const [plannerNavigationContext, setPlannerNavigationContext] = useState<PlannerNavigationContext | undefined>()
 
   const plannedRecipeId = plannerDraft?.recipeId
 
@@ -156,15 +163,27 @@ function App() {
     setSelectedMachineId(machineId)
     setSelectedRecipeId(undefined)
     setSelectedOutputGroupKey(undefined)
+    setPlannerNavigationContext(undefined)
   }
 
-  function navigateToStack(stack: ExportStack, mode: SearchMode) {
+  function navigateToStack(stack: ExportStack, mode: SearchMode, plannerContext?: PlannerNavigationContext) {
     setSearchText(formatStackSearchToken(stack))
     setSearchMode(mode)
     setResultViewMode('exact')
     setSelectedMachineId(undefined)
     setSelectedRecipeId(undefined)
     setSelectedOutputGroupKey(undefined)
+    setPlannerNavigationContext(plannerContext)
+  }
+
+  function focusRecipe(recipeId: string) {
+    setSearchText(recipeId)
+    setSearchMode('ids')
+    setResultViewMode('exact')
+    setSelectedMachineId(undefined)
+    setSelectedRecipeId(recipeId)
+    setSelectedOutputGroupKey(undefined)
+    setPlannerNavigationContext(undefined)
   }
 
   return (
@@ -207,6 +226,7 @@ function App() {
               setSearchText(event.target.value)
               setSelectedRecipeId(undefined)
               setSelectedOutputGroupKey(undefined)
+              setPlannerNavigationContext(undefined)
             }}
           />
 
@@ -225,6 +245,7 @@ function App() {
                     setSearchMode(option.value)
                     setSelectedRecipeId(undefined)
                     setSelectedOutputGroupKey(undefined)
+                    setPlannerNavigationContext(undefined)
                   }}
                 >
                   {option.label}
@@ -247,6 +268,7 @@ function App() {
                       setResultViewMode(option.value)
                       setSelectedRecipeId(undefined)
                       setSelectedOutputGroupKey(undefined)
+                      setPlannerNavigationContext(undefined)
                     }}
                 >
                   {option.label}
@@ -255,11 +277,20 @@ function App() {
           </div>
         </section>
 
+        {plannerNavigationContext && plannedRecipe && (
+            <PlannerNavigationNotice
+              stack={plannerNavigationContext.stack}
+              purpose={plannerNavigationContext.purpose}
+              onSelectPlannedRecipe={() => focusRecipe(plannedRecipe.id)}
+              onClear={() => setPlannerNavigationContext(undefined)}
+            />
+        )}
+
         {plannedRecipe && plannerDraft && (
             <PlannerSummary
               recipe={plannedRecipe}
               draft={plannerDraft}
-              onSelectRecipe={() => setSelectedRecipeId(plannedRecipe.id)}
+              onSelectRecipe={() => focusRecipe(plannedRecipe.id)}
               onClearPlan={() => setPlannerDraft(undefined)}
               onTargetRateChange={(targetRatePerSecond) =>
                 setPlannerDraft((currentDraft) =>
@@ -289,8 +320,18 @@ function App() {
             <PlannerRateBreakdown
                 recipe={plannedRecipe}
                 draft={plannerDraft}
-                onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
-                onFindUses={(stack) => navigateToStack(stack, 'inputs')}
+                onFindProducers={(stack) =>
+                  navigateToStack(stack, 'outputs', {
+                    stack,
+                    purpose: 'producers',
+                  })
+                }
+                onFindUses={(stack) =>
+                  navigateToStack(stack, 'inputs', {
+                    stack,
+                    purpose: 'uses',
+                  })
+                }
             />
         )}
 

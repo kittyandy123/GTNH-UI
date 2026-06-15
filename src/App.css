@@ -829,6 +829,37 @@
   background: var(--accent-bg);
 }
 
+.planner-navigation-notice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--accent-border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: var(--accent-bg);
+  box-shadow: var(--shadow);
+}
+
+.planner-navigation-notice h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 16px;
+}
+
+.planner-navigation-notice p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.planner-navigation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @media (max-width: 1100px) {
   .planner-layout {
     grid-template-columns: 1fr;
