@@ -1,11 +1,7 @@
 import { formatDecimal, formatRecipeStats, formatStackCompact } from '../lib/recipeHelpers'
 import type { NormalizedExportRecipe } from '../lib/normalizeExport'
-import {
-    getPlannerDraftTargetOutputIndex,
-    getPlannerDraftTargetRatePerSecond,
-    type PlannerDraft,
-} from '../planner/model/plannerDraft'
-import { getBaseOutputRatePerSecond, getPlannerTargetOutput, getRequiredMachineCount, getRoundedRequiredMachineCount } from '../planner/calc/rates'
+import type { PlannerDraft } from '../planner/model/plannerDraft'
+import { computePlannerDraftSummary } from '../planner/calc/planSummary'
 
 interface PlannerSummaryProps {
     recipe: NormalizedExportRecipe
@@ -17,12 +13,7 @@ interface PlannerSummaryProps {
 }
 
 export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onTargetRateChange, onTargetOutputIndexChange }: PlannerSummaryProps) {
-    const targetOutput = getPlannerTargetOutput(recipe, draft)
-    const baseRate = getBaseOutputRatePerSecond(recipe, draft)
-    const requiredMachines = getRequiredMachineCount(recipe, draft)
-    const roundedRequiredMachines = getRoundedRequiredMachineCount(recipe, draft)
-    const targetOutputIndex = getPlannerDraftTargetOutputIndex(draft)
-    const targetRatePerSecond = getPlannerDraftTargetRatePerSecond(draft)
+    const summary = computePlannerDraftSummary(recipe, draft)
 
     return (
         <section className="planner-summary" aria-label="Planner draft">
@@ -33,20 +24,24 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
                     {recipe.machine.name} · {formatRecipeStats(recipe)}
                 </p>
 
-                {targetOutput && (
+                {summary.targetOutput && (
                     <p className="planner-rate-note">
-                        Target output: {formatStackCompact(targetOutput)}
-                        {baseRate !== undefined && (
-                            <> · Base rate: {formatDecimal(baseRate)} {targetOutput.unit}/s</>
+                        Target output: {formatStackCompact(summary.targetOutput)}
+                        {summary.baseTargetRatePerSecond !== undefined && (
+                            <>
+                                {' '}
+                                · Base rate: {formatDecimal(summary.baseTargetRatePerSecond)}{' '}
+                                {summary.targetOutput.unit}/s
+                            </>
                         )}
                     </p>
                 )}
 
-                {requiredMachines !== undefined && (
+                {summary.exactMachineCount !== undefined && (
                     <p className="planner-rate-note">
-                        Estimated machines: {formatDecimal(requiredMachines)} exact
-                        {roundedRequiredMachines !== undefined && (
-                            <> · build {roundedRequiredMachines}</>
+                        Estimated machines: {formatDecimal(summary.exactMachineCount)} exact
+                        {summary.roundedMachineCount !== undefined && (
+                            <> · build {summary.roundedMachineCount}</>
                         )}
                     </p>
                 )}
@@ -57,7 +52,7 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
                     <label className="target-output-field">
                         <span>Target output</span>
                         <select
-                            value={targetOutputIndex}
+                            value={summary.targetOutputIndex}
                             onChange={(event) => {
                                 onTargetOutputIndexChange(Number(event.target.value))
                             }}
@@ -80,7 +75,7 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
                         min="0"
                         step="0.001"
                         type="number"
-                        value={targetRatePerSecond ?? ''}
+                        value={summary.targetRatePerSecond ?? ''}
                         onChange={(event) => {
                             const rawValue = event.target.value.trim()
 
