@@ -1,6 +1,9 @@
 import { formatDecimal, formatNumber, formatStackIdentity } from '../lib/recipeHelpers'
 import type { NormalizedExportRecipe } from '../lib/normalizeExport'
-import type { PlannerDraft } from '../planner/model/plannerDraft'
+import {
+    getPlannerDraftTargetRatePerSecond,
+    type PlannerDraft,
+} from '../planner/model/plannerDraft'
 import {
     getPerMachineStackRate,
     getPlannedInputRates,
@@ -25,6 +28,7 @@ export function PlannerRateBreakdown({ recipe, draft, onFindProducers, onFindUse
     const operationsPerSecond = getRecipeOperationsPerSecond(recipe, draft)
     const powerEstimate = getPlannerPowerEstimate(recipe, draft)
     const targetOutput = getPlannerTargetOutput(recipe, draft)
+    const targetRatePerSecond = getPlannerDraftTargetRatePerSecond(draft)
 
     const targetOutputRates = targetOutput
         ? outputRates.filter(({ stack }) => stack === targetOutput)
@@ -34,7 +38,7 @@ export function PlannerRateBreakdown({ recipe, draft, onFindProducers, onFindUse
         ? outputRates.filter(({ stack }) => stack !== targetOutput)
         : outputRates
 
-    if (draft.targetRatePerSecond === undefined) {
+    if (targetRatePerSecond === undefined) {
         return null
     }
 

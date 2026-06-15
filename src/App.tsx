@@ -19,7 +19,13 @@ import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
 import { buildOutputGroups } from './lib/outputGroups'
 import { PlannerSummary } from './components/PlannerSummary'
-import { createPlannerDraft, type PlannerDraft } from './planner/model/plannerDraft'
+import {
+  createPlannerDraft,
+  getPlannerDraftRecipeId,
+  setPlannerDraftTargetOutputIndex,
+  setPlannerDraftTargetRatePerSecond,
+  type PlannerDraft,
+} from './planner/model/plannerDraft'
 import { PlannerRateBreakdown } from './components/PlannerRateBreakdown'
 import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
 
@@ -59,7 +65,9 @@ function App() {
   const [plannerDraft, setPlannerDraft] = useState<PlannerDraft | undefined>()
   const [plannerNavigationContext, setPlannerNavigationContext] = useState<PlannerNavigationContext | undefined>()
 
-  const plannedRecipeId = plannerDraft?.recipeId
+  const plannedRecipeId = plannerDraft
+      ? getPlannerDraftRecipeId(plannerDraft)
+      : undefined
 
   useEffect(() => {
     let cancelled = false
@@ -293,25 +301,18 @@ function App() {
               onSelectRecipe={() => focusRecipe(plannedRecipe.id)}
               onClearPlan={() => setPlannerDraft(undefined)}
               onTargetRateChange={(targetRatePerSecond) =>
-                setPlannerDraft((currentDraft) =>
-                  currentDraft
-                    ? {
-                        ...currentDraft,
-                        targetRatePerSecond,
-                      }
-                    : undefined,
-                )
+                  setPlannerDraft((currentDraft) =>
+                    currentDraft
+                      ? setPlannerDraftTargetRatePerSecond(currentDraft, targetRatePerSecond)
+                      : undefined,
+                  )
               }
               onTargetOutputIndexChange={(targetOutputIndex) =>
-                setPlannerDraft((currentDraft) =>
-                  currentDraft
-                    ? {
-                        ...currentDraft,
-                        targetOutputIndex,
-                        targetRatePerSecond: undefined,
-                      }
-                    : undefined,
-                )
+                  setPlannerDraft((currentDraft) =>
+                    currentDraft
+                      ? setPlannerDraftTargetOutputIndex(currentDraft, targetOutputIndex)
+                      : undefined,
+                  )
               }
             />
         )}

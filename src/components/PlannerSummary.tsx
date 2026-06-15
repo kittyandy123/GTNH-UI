@@ -1,6 +1,10 @@
 import { formatDecimal, formatRecipeStats, formatStackCompact } from '../lib/recipeHelpers'
 import type { NormalizedExportRecipe } from '../lib/normalizeExport'
-import type { PlannerDraft } from '../planner/model/plannerDraft'
+import {
+    getPlannerDraftTargetOutputIndex,
+    getPlannerDraftTargetRatePerSecond,
+    type PlannerDraft,
+} from '../planner/model/plannerDraft'
 import { getBaseOutputRatePerSecond, getPlannerTargetOutput, getRequiredMachineCount, getRoundedRequiredMachineCount } from '../planner/calc/rates'
 
 interface PlannerSummaryProps {
@@ -17,6 +21,8 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
     const baseRate = getBaseOutputRatePerSecond(recipe, draft)
     const requiredMachines = getRequiredMachineCount(recipe, draft)
     const roundedRequiredMachines = getRoundedRequiredMachineCount(recipe, draft)
+    const targetOutputIndex = getPlannerDraftTargetOutputIndex(draft)
+    const targetRatePerSecond = getPlannerDraftTargetRatePerSecond(draft)
 
     return (
         <section className="planner-summary" aria-label="Planner draft">
@@ -51,7 +57,7 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
                     <label className="target-output-field">
                         <span>Target output</span>
                         <select
-                            value={draft.targetOutputIndex}
+                            value={targetOutputIndex}
                             onChange={(event) => {
                                 onTargetOutputIndexChange(Number(event.target.value))
                             }}
@@ -74,7 +80,7 @@ export function PlannerSummary({ recipe, draft, onSelectRecipe, onClearPlan, onT
                         min="0"
                         step="0.001"
                         type="number"
-                        value={draft.targetRatePerSecond ?? ''}
+                        value={targetRatePerSecond ?? ''}
                         onChange={(event) => {
                             const rawValue = event.target.value.trim()
 

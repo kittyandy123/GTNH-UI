@@ -1,9 +1,15 @@
 import type { NormalizedExportRecipe } from '../../lib/normalizeExport'
 import type { ExportStack } from '../../types/recipe'
-import type { PlannerDraft } from '../model/plannerDraft'
+import {
+    getPlannerDraftTargetOutputIndex,
+    getPlannerDraftTargetRatePerSecond,
+    type PlannerDraft
+} from '../model/plannerDraft'
 
 export function getPlannerTargetOutput(recipe: NormalizedExportRecipe, draft: PlannerDraft): ExportStack | undefined {
-    return recipe.outputs[draft.targetOutputIndex] ?? recipe.outputs[0]
+    const targetOutputIndex = getPlannerDraftTargetOutputIndex(draft)
+
+    return recipe.outputs[targetOutputIndex] ?? recipe.outputs[0]
 }
 
 export function getBaseOutputRatePerSecond(recipe: NormalizedExportRecipe, draft: PlannerDraft): number | undefined {
@@ -17,7 +23,7 @@ export function getBaseOutputRatePerSecond(recipe: NormalizedExportRecipe, draft
 }
 
 export function getRequiredMachineCount(recipe: NormalizedExportRecipe, draft: PlannerDraft): number | undefined {
-    const targetRate = draft.targetRatePerSecond
+    const targetRate = getPlannerDraftTargetRatePerSecond(draft)
     const baseRate = getBaseOutputRatePerSecond(recipe, draft)
 
     if (targetRate === undefined || targetRate <= 0 || baseRate === undefined || baseRate <= 0) {
@@ -43,7 +49,7 @@ export interface PlannerStackRate {
 }
 
 export function getRecipeOperationsPerSecond(recipe: NormalizedExportRecipe, draft: PlannerDraft): number | undefined {
-    const targetRate = draft.targetRatePerSecond
+    const targetRate = getPlannerDraftTargetRatePerSecond(draft)
     const targetOutput = getPlannerTargetOutput(recipe, draft)
 
     if (targetRate === undefined || targetRate <= 0 || !targetOutput || targetOutput.amount <= 0) {
@@ -99,7 +105,7 @@ export function getPlannerPowerEstimate(recipe: NormalizedExportRecipe, draft: P
     const exactMachineCount = getRequiredMachineCount(recipe, draft)
     const roundedMachineCount = getRoundedRequiredMachineCount(recipe, draft)
 
-    if (exactMachineCount === undefined || roundedMachineCount === undefined || recipe.eut <= 0) {
+    if (exactMachineCount === undefined || roundedMachineCount === undefined) {
         return undefined
     }
 
