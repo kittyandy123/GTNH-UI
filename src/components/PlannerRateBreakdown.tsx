@@ -35,7 +35,7 @@ export function PlannerRateBreakdown({ recipe, draft, onFindProducers, onFindUse
                     </p>
                 )}
 
-                {summary.powerEstimate && (
+                {summary.powerEstimate ? (
                     <div className="planner-power-summary">
                         <span>
                             Recipe draw:{' '}
@@ -48,6 +48,15 @@ export function PlannerRateBreakdown({ recipe, draft, onFindProducers, onFindUse
                         <span>
                             Installed draw:{' '}
                             <strong>{formatNumber(summary.powerEstimate.roundedEuPerTick)} EU/t</strong>
+                        </span>
+                    </div>
+                ) : (
+                    <div className="planner-power-summary">
+                        <span>
+                            Power:{' '}
+                            <strong>
+                                {summary.usesEuPower ? 'Set a target rate to estimate EU/t' : 'Not EU-powered / fuel-based'}
+                            </strong>
                         </span>
                     </div>
                 )}

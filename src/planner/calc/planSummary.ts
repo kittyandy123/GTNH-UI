@@ -12,6 +12,7 @@ export interface PlannerPlanSummary {
     planName: string
     rootNodeId: string
     rootRecipeId?: string
+    usesEuPower: boolean
     targetOutput?: ExportStack
     targetOutputIndex: number
     targetRatePerSecond?: number
@@ -93,6 +94,7 @@ function computeRecipeNodeSummary(plan: PlannerPlan, rootNode: PlannerNode, reci
     const operationsPerSecond = getOperationsPerSecond(targetOutput, targetRatePerSecond)
     const exactMachineCount = getExactMachineCount(targetRatePerSecond, baseTargetRatePerSecond)
     const roundedMachineCount = exactMachineCount !== undefined ? Math.ceil(exactMachineCount) : undefined
+    const usesEuPower = isEuPoweredRecipe(recipe)
 
     const inputRates = operationsPerSecond !== undefined
         ? recipe.inputs.map((stack) =>
@@ -114,13 +116,16 @@ function computeRecipeNodeSummary(plan: PlannerPlan, rootNode: PlannerNode, reci
         ? outputRates.filter(({ stack }) => stack !== targetOutput)
         : outputRates
 
-    const powerEstimate = getPowerEstimate(recipe, exactMachineCount, roundedMachineCount)
+    const powerEstimate = usesEuPower
+        ? getPowerEstimate(recipe, exactMachineCount, roundedMachineCount)
+        : undefined
 
     return {
         planId: plan.id,
         planName: plan.name,
         rootNodeId: rootNode.id,
         rootRecipeId: recipe.id,
+        usesEuPower,
         targetOutput,
         targetOutputIndex,
         targetRatePerSecond,
@@ -156,6 +161,7 @@ function createEmptyPlanSummary(plan: PlannerPlan): PlannerPlanSummary {
         planId: plan.id,
         planName: plan.name,
         rootNodeId: plan.rootNodeId,
+        usesEuPower: false,
         targetOutputIndex: 0,
         inputRates: [],
         targetOutputRates: [],
@@ -232,4 +238,8 @@ function getPowerEstimate(recipe: NormalizedExportRecipe, exactMachineCount: num
         exactEuPerTick: recipe.eut * exactMachineCount,
         roundedEuPerTick: recipe.eut * roundedMachineCount,
     }
+}
+
+function isEuPoweredRecipe(recipe: NormalizedExportRecipe): boolean {
+    return recipe.machine.category === 'GregTech' || recipe.machine.id.startsWith('gregtech:')
 }
