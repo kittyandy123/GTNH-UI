@@ -1,5 +1,5 @@
 import type { NormalizedExportRecipe } from '../../lib/normalizeExport'
-import { createPlannerPlan } from './plannerPlan'
+import { createPlannerPlan, getDefaultRecipeTargetRatePerSecond } from './plannerPlan'
 import type { PlannerNode, PlannerPlan } from './plannerPlan'
 
 export interface PlannerDraft {
@@ -28,23 +28,65 @@ export function getPlannerDraftTargetRatePerSecond(draft: PlannerDraft): number 
     return getPlannerDraftRootNode(draft)?.targetRatePerSecond
 }
 
-export function setPlannerDraftTargetRatePerSecond(draft: PlannerDraft, targetRatePerSecond: number | undefined): PlannerDraft {
-    const normalizedTargetRate = targetRatePerSecond !== undefined && targetRatePerSecond > 0
-        ? targetRatePerSecond
-        : undefined
+export function setPlannerDraftTargetRatePerSecond(draft: PlannerDraft, targetRatePerSecond: number | undefined, recipe?: NormalizedExportRecipe): PlannerDraft {
+    return updatePlannerDraftRootNode(draft, (rootNode) => {
+        const fallbackRate = getFallbackTargetRatePerSecond(draft, recipe)
+        const normalizedTargetRate =
+            targetRatePerSecond !== undefined && targetRatePerSecond > 0
+                ? targetRatePerSecond
+                : fallbackRate
 
-    return updatePlannerDraftRootNode(draft, (rootNode) => ({
-        ...rootNode,
-        targetRatePerSecond: normalizedTargetRate,
-    }))
+        return {
+            ...rootNode,
+            targetRatePerSecond: normalizedTargetRate,
+        }
+    })
 }
 
-export function setPlannerDraftTargetOutputIndex(draft: PlannerDraft, targetOutputIndex: number): PlannerDraft {
-    return updatePlannerDraftRootNode(draft, (rootNode) => ({
-        ...rootNode,
-        targetOutputIndex: Math.max(0, targetOutputIndex),
-        targetRatePerSecond: undefined,
-    }))
+export function setPlannerDraftTargetOutputIndex(draft: PlannerDraft, targetOutputIndex: number, recipe?: NormalizedExportRecipe): PlannerDraft {
+    return updatePlannerDraftRootNode(draft, (rootNode) => {
+        const normalizedTargetOutputIndex = normalizeTargetOutputIndex(
+            targetOutputIndex,
+            recipe,
+        )
+
+        return {
+            ...rootNode,
+            targetOutputIndex: normalizedTargetOutputIndex,
+            targetRatePerSecond: recipe
+                ? getDefaultRecipeTargetRatePerSecond(recipe, normalizedTargetOutputIndex)
+                : rootNode.targetRatePerSecond,
+        }
+    })
+}
+
+function getFallbackTargetRatePerSecond(draft: PlannerDraft, recipe: NormalizedExportRecipe | undefined): number {
+    const rootNode = getPlannerDraftRootNode(draft)
+
+    if (recipe) {
+        return getDefaultRecipeTargetRatePerSecond(
+            recipe,
+            rootNode?.targetOutputIndex ?? 0,
+        )
+    }
+
+    if (rootNode?.targetRatePerSecond !== undefined && rootNode.targetRatePerSecond > 0) {
+        return rootNode.targetRatePerSecond
+    }
+
+    return 1
+}
+
+function normalizeTargetOutputIndex(targetOutputIndex: number, recipe: NormalizedExportRecipe | undefined): number {
+    if (!Number.isFinite(targetOutputIndex) || targetOutputIndex < 0) {
+        return 0
+    }
+
+    if (recipe && targetOutputIndex >= recipe.outputs.length) {
+        return 0
+    }
+
+    return targetOutputIndex
 }
 
 function updatePlannerDraftRootNode(draft: PlannerDraft, updateRootNode: (rootNode: PlannerNode) => PlannerNode): PlannerDraft {

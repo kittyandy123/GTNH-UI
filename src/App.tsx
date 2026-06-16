@@ -302,14 +302,14 @@ function App() {
                 onTargetRateChange={(targetRatePerSecond) =>
                     setPlannerDraft((currentDraft) =>
                         currentDraft
-                            ? setPlannerDraftTargetRatePerSecond(currentDraft, targetRatePerSecond)
+                            ? setPlannerDraftTargetRatePerSecond(currentDraft, targetRatePerSecond, plannedRecipe)
                             : undefined,
                     )
                 }
                 onTargetOutputIndexChange={(targetOutputIndex) =>
                     setPlannerDraft((currentDraft) =>
                         currentDraft
-                            ? setPlannerDraftTargetOutputIndex(currentDraft, targetOutputIndex)
+                            ? setPlannerDraftTargetOutputIndex(currentDraft, targetOutputIndex, plannedRecipe)
                             : undefined,
                     )
                 }

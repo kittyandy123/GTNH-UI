@@ -129,11 +129,14 @@ export function createPlannerPlan(recipe: NormalizedExportRecipe): PlannerPlan {
 }
 
 export function createRecipePlannerNode(recipe: NormalizedExportRecipe): PlannerNode {
+    const targetOutputIndex = 0
+
     return {
         id: createPlannerNodeId(recipe.id),
         kind: 'recipe',
         recipeId: recipe.id,
-        targetOutputIndex: 0,
+        targetOutputIndex,
+        targetRatePerSecond: getDefaultRecipeTargetRatePerSecond(recipe, targetOutputIndex),
         status: 'planned',
         label: recipe.outputs[0]?.displayName ?? recipe.machine.name,
         machineConfig: {
@@ -141,6 +144,16 @@ export function createRecipePlannerNode(recipe: NormalizedExportRecipe): Planner
             machineKind: 'singleblock',
         },
     }
+}
+
+export function getDefaultRecipeTargetRatePerSecond(recipe: NormalizedExportRecipe, targetOutputIndex = 0): number {
+    const targetOutput = recipe.outputs[targetOutputIndex] ?? recipe.outputs[0]
+
+    if (!targetOutput || recipe.durationSeconds <= 0 || targetOutput.amount <= 0) {
+        return 1
+    }
+
+    return targetOutput.amount / recipe.durationSeconds
 }
 
 export function createPlannerNodeId(recipeId: string): string {

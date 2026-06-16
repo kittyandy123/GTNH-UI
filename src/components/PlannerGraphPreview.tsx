@@ -14,7 +14,7 @@ import {
 } from '../planner/calc/planSummary'
 import type { ExportStack } from '../types/recipe'
 
-import type { KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 
 interface PlannerGraphPreviewProps {
     recipe: NormalizedExportRecipe
@@ -40,6 +40,9 @@ export function PlannerGraphPreview({
     onOpenPlannerView,
 }: PlannerGraphPreviewProps) {
     const summary = computePlannerDraftSummary(recipe, draft)
+    const targetRateInputValue = summary.targetRatePerSecond ?? summary.baseTargetRatePerSecond ?? 1
+    const [targetRateInputDraft, setTargetRateInputDraft] = useState<string | undefined>()
+    const targetRateInput = targetRateInputDraft ?? String(targetRateInputValue)
     const graph = buildVisualGraphFromPlanSummary(summary)
     const stackRatesByNodeId = getStackRatesByNodeId(summary)
 
@@ -110,24 +113,29 @@ export function PlannerGraphPreview({
                     <span>Target / sec</span>
                     <input
                         min="0"
-                        step="1"
+                        step="0.001"
                         type="number"
-                        value={summary.targetRatePerSecond ?? ''}
-                        onChange={(event) => {
-                            const rawValue = event.target.value.trim()
+                        value={targetRateInput}
+                        onBlur={() => {
+                            const parsedValue = Number(targetRateInput)
 
-                            if (rawValue === '') {
-                                onTargetRateChange(undefined)
+                            if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+                                setTargetRateInputDraft(undefined)
+                                onTargetRateChange(targetRateInputValue)
                                 return
                             }
 
+                            setTargetRateInputDraft(undefined)
+                        }}
+                        onChange={(event) => {
+                            const rawValue = event.target.value.trim()
+                            setTargetRateInputDraft(rawValue)
+
                             const parsedValue = Number(rawValue)
 
-                            onTargetRateChange(
-                                Number.isFinite(parsedValue) && parsedValue > 0
-                                    ? parsedValue
-                                    : undefined,
-                            )
+                            if (!Number.isFinite(parsedValue) && parsedValue > 0) {
+                                onTargetRateChange(parsedValue)
+                            }
                         }}
                     />
 
@@ -142,8 +150,14 @@ export function PlannerGraphPreview({
                             </button>
                         ))}
 
-                        <button type="button" onClick={() => onTargetRateChange(undefined)}>
-                            Clear
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setTargetRateInputDraft(undefined)
+                                onTargetRateChange(undefined)
+                            }}
+                        >
+                            Reset
                         </button>
                     </div>
                 </label>
