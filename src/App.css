@@ -860,6 +860,129 @@
   gap: 8px;
 }
 
+.planner-graph-preview {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.planner-graph-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.planner-graph-column {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--soft-bg);
+}
+
+.planner-graph-column h3 {
+  margin: 0 0 10px;
+  color: var(--text-h);
+  font-size: 0.92rem;
+}
+
+.planner-graph-node-list {
+  display: grid;
+  gap: 10px;
+}
+
+.planner-graph-node {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--surface);
+}
+
+.planner-graph-node strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-h);
+}
+
+.planner-graph-node-kind {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.planner-graph-node-unresolved-input {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.planner-graph-node-target-output {
+  border-color: var(--accent-border);
+}
+
+.planner-graph-node-byproduct {
+  border-style: dashed;
+}
+
+.planner-graph-node-metrics {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 0;
+}
+
+.planner-graph-node-metrics div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.planner-graph-node-metrics dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.planner-graph-node-metrics dd {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.planner-graph-edge-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.planner-graph-edge-labels span,
+.planner-graph-overlays span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--text-h);
+  background: var(--input-bg);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.planner-graph-overlays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 @media (max-width: 1100px) {
   .planner-layout {
     grid-template-columns: 1fr;
@@ -883,6 +1006,12 @@
 
   .recipe-list {
     max-height: 520px;
+  }
+}
+
+@media (max-width: 950px) {
+  .planner-graph-grid {
+    grid-template-columns: 1fr;
   }
 }
 

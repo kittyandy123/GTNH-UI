@@ -28,6 +28,7 @@ import {
 } from './planner/model/plannerDraft'
 import { PlannerRateBreakdown } from './components/PlannerRateBreakdown'
 import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
+import { PlannerGraphPreview } from './components/PlannerGraphPreview'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -333,6 +334,13 @@ function App() {
                     purpose: 'uses',
                   })
                 }
+            />
+        )}
+
+        {plannedRecipe && plannerDraft && (
+            <PlannerGraphPreview
+              recipe={plannedRecipe}
+              draft={plannerDraft}
             />
         )}
 
