@@ -4,7 +4,7 @@ import { loadRecipeExport } from './lib/loadRecipes'
 import {
   formatDate,
   formatNumber,
-  formatStackSearchToken,
+  formatExactStackSearchToken,
   normalizeSearchText,
   recipeMatchesQuery,
 } from './lib/recipeHelpers'
@@ -174,7 +174,7 @@ function App() {
   }
 
   function navigateToStack(stack: ExportStack, mode: SearchMode, plannerContext?: PlannerNavigationContext) {
-    setSearchText(formatStackSearchToken(stack))
+    setSearchText(formatExactStackSearchToken(stack))
     setSearchMode(mode)
     setResultViewMode('exact')
     setSelectedMachineId(undefined)
