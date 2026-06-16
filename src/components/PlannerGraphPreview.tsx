@@ -14,6 +14,8 @@ import {
 } from '../planner/calc/planSummary'
 import type { ExportStack } from '../types/recipe'
 
+import type { KeyboardEvent } from 'react'
+
 interface PlannerGraphPreviewProps {
     recipe: NormalizedExportRecipe
     draft: PlannerDraft
@@ -331,9 +333,36 @@ function PlannerGraphNodeCard({
 }: PlannerGraphNodeCardProps) {
     const relatedEdges = getRelatedEdges(graph, node)
     const stackAction = getStackAction(node, stackRate, onFindProducers, onFindUses)
+    const isActionable = stackAction !== undefined
+
+    function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+        if (!stackAction) {
+            return
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            stackAction.onClick()
+        }
+    }
+
+    const className = [
+        'planner-graph-node',
+        `planner-graph-node-${node.status ?? node.kind}`,
+        isActionable ? 'planner-graph-node-actionable' : undefined,
+    ]
+        .filter(Boolean)
+        .join(' ')
 
     return (
-        <article className={`planner-graph-node planner-graph-node-${node.status ?? node.kind}`}>
+        <article
+            aria-label={stackAction ? `${stackAction.label} for ${node.label}` : undefined}
+            className={className}
+            role={isActionable ? 'button' : undefined}
+            tabIndex={isActionable ? 0 : undefined}
+            onClick={stackAction ? () => stackAction.onClick() : undefined}
+            onKeyDown={handleKeyDown}
+        >
             <div>
                 <span className="planner-graph-node-kind">
                     {getNodeKindLabel(node)}
@@ -362,13 +391,12 @@ function PlannerGraphNodeCard({
 
             {stackAction && (
                 <div className="planner-graph-node-actions">
-                    <button
-                        className="stack-action-button"
-                        type="button"
-                        onClick={stackAction.onClick}
+                    <span
+                        aria-hidden={true}
+                        className="stack-action-button planner-graph-card-action-label"
                     >
                         {stackAction.label}
-                    </button>
+                    </span>
                 </div>
             )}
         </article>

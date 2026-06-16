@@ -1056,6 +1056,66 @@
   margin-top: 10px;
 }
 
+.planner-graph-node {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.planner-graph-node-actionable {
+  cursor: pointer;
+  transform-origin: center;
+}
+
+.planner-graph-node-actionable:hover,
+.planner-graph-node-actionable:focus-visible {
+  transform: scale(1.012);
+  outline: none;
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-bg),
+      var(--surface) 72%
+    );
+  box-shadow:
+    0 0 0 1px var(--accent-border),
+    0 12px 26px rgba(0, 0, 0, 0.18);
+}
+
+.planner-graph-node-unresolved-input.planner-graph-node-actionable:hover,
+.planner-graph-node-unresolved-input.planner-graph-node-actionable:focus-visible {
+  border-color: rgba(245, 158, 11, 0.72);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(245, 158, 11, 0.13),
+      var(--surface) 72%
+    );
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, 0.48),
+    0 12px 26px rgba(245, 158, 11, 0.14);
+}
+
+.planner-graph-node-target-output.planner-graph-node-actionable:hover,
+.planner-graph-node-target-output.planner-graph-node-actionable:focus-visible,
+.planner-graph-node-byproduct.planner-graph-node-actionable:hover,
+.planner-graph-node-byproduct.planner-graph-node-actionable:focus-visible {
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-bg),
+      var(--surface) 72%
+    );
+}
+
+.planner-graph-card-action-label {
+  pointer-events: none;
+}
+
 @media (max-width: 1100px) {
   .planner-layout {
     grid-template-columns: 1fr;
