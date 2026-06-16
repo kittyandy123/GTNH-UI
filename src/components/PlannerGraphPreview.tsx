@@ -1,18 +1,45 @@
-import { formatDecimal } from '../lib/recipeHelpers'
+import {
+    formatDecimal,
+    formatNumber,
+    formatStackCompact,
+} from '../lib/recipeHelpers'
 import type { NormalizedExportRecipe } from '../lib/normalizeExport'
 import type { VisualGraph, VisualGraphEdge, VisualGraphNode } from '../graph/model/visualGraph'
 import type { PlannerDraft } from '../planner/model/plannerDraft'
 import { buildVisualGraphFromPlanSummary } from '../planner/calc/planGraph'
-import { computePlannerDraftSummary } from '../planner/calc/planSummary'
+import {
+    computePlannerDraftSummary,
+    type PlannerPlanSummary,
+    type PlannerStackRate,
+} from '../planner/calc/planSummary'
+import type { ExportStack } from '../types/recipe'
 
 interface PlannerGraphPreviewProps {
     recipe: NormalizedExportRecipe
     draft: PlannerDraft
+    onSelectRecipe: () => void
+    onClearPlan: () => void
+    onTargetRateChange: (targetRatePerSecond: number | undefined) => void
+    onTargetOutputIndexChange: (targetOutputIndex: number) => void
+    onFindProducers: (stack: ExportStack) => void
+    onFindUses: (stack: ExportStack) => void
+    onOpenPlannerView?: () => void
 }
 
-export function PlannerGraphPreview({ recipe, draft }: PlannerGraphPreviewProps) {
+export function PlannerGraphPreview({
+    recipe,
+    draft,
+    onSelectRecipe,
+    onClearPlan,
+    onTargetRateChange,
+    onTargetOutputIndexChange,
+    onFindProducers,
+    onFindUses,
+    onOpenPlannerView,
+}: PlannerGraphPreviewProps) {
     const summary = computePlannerDraftSummary(recipe, draft)
     const graph = buildVisualGraphFromPlanSummary(summary)
+    const stackRatesByNodeId = getStackRatesByNodeId(summary)
 
     const inputNodes = graph.nodes.filter((node) => node.status === 'unresolved-input')
     const recipeNodes = graph.nodes.filter((node) => node.kind === 'recipe')
@@ -20,14 +47,107 @@ export function PlannerGraphPreview({ recipe, draft }: PlannerGraphPreviewProps)
 
     return (
         <section className="planner-graph-preview" aria-label="Planner graph preview">
-            <div className="panel-heading">
-                <p className="eyebrow">Graph preview</p>
-                <h2>Single-line plan graph</h2>
-                <p>
-                    First graph view from the computed plan summary. Inputs are unresolved until producer
-                    selection is added.
-                </p>
+            <div className="planner-preview-heading">
+                <div>
+                    <p className="eyebrow">Graph preview</p>
+                    <h2>Single-line plan graph</h2>
+                    <p>
+                        Main-screen preview for the selected recipe. Open a named planner workspace
+                        for recursive planning.
+                    </p>
+                </div>
+
+                <div className="planner-preview-actions">
+                    <button
+                        className="primary-action-button"
+                        type="button"
+                        disabled={!onOpenPlannerView}
+                        title={
+                        onOpenPlannerView
+                            ? undefined
+                            : 'Named planner workspaces are the next implementation step.'
+                        }
+                        onClick={onOpenPlannerView}
+                    >
+                        Open in planner view
+                    </button>
+
+                    <button className="secondary-action-button" type="button" onClick={onSelectRecipe}>
+                        View recipe
+                    </button>
+
+                    <button className="secondary-action-button" type="button" onClick={onClearPlan}>
+                        Clear preview
+                    </button>
+                </div>
             </div>
+
+            <div className="planner-preview-controls">
+                {recipe.outputs.length > 1 && (
+                    <label className="target-output-field">
+                        <span>Target output</span>
+                        <select
+                            value={summary.targetOutputIndex}
+                            onChange={(event) => {
+                                onTargetOutputIndexChange(Number(event.target.value))
+                            }}
+                        >
+                            {recipe.outputs.map((output, index) => (
+                                <option
+                                    key={`${output.kind}:${output.id}:${output.meta}:${index}`}
+                                    value={index}
+                                >
+                                    {formatStackCompact(output)}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                )}
+
+                <label className="target-rate-field">
+                    <span>Target / sec</span>
+                    <input
+                        min="0"
+                        step="1"
+                        type="number"
+                        value={summary.targetRatePerSecond ?? ''}
+                        onChange={(event) => {
+                            const rawValue = event.target.value.trim()
+
+                            if (rawValue === '') {
+                                onTargetRateChange(undefined)
+                                return
+                            }
+
+                            const parsedValue = Number(rawValue)
+
+                            onTargetRateChange(
+                                Number.isFinite(parsedValue) && parsedValue > 0
+                                    ? parsedValue
+                                    : undefined,
+                            )
+                        }}
+                    />
+
+                    <div className="target-rate-presets">
+                        {[1, 5, 10].map((rate) => (
+                            <button
+                                key={rate}
+                                type="button"
+                                onClick={() => onTargetRateChange(rate)}
+                            >
+                                {rate}/s
+                            </button>
+                        ))}
+
+                        <button type="button" onClick={() => onTargetRateChange(undefined)}>
+                            Clear
+                        </button>
+                    </div>
+                </label>
+            </div>
+
+            <PlannerPreviewMetrics summary={summary} />
 
             {summary.targetRatePerSecond === undefined && (
                 <p className="planner-rate-note">
@@ -41,6 +161,9 @@ export function PlannerGraphPreview({ recipe, draft }: PlannerGraphPreviewProps)
                     emptyLabel="No scaled inputs yet"
                     graph={graph}
                     nodes={inputNodes}
+                    stackRatesByNodeId={stackRatesByNodeId}
+                    onFindProducers={onFindProducers}
+                    onFindUses={onFindUses}
                 />
 
                 <PlannerGraphColumn
@@ -48,6 +171,9 @@ export function PlannerGraphPreview({ recipe, draft }: PlannerGraphPreviewProps)
                     emptyLabel="No recipe node"
                     graph={graph}
                     nodes={recipeNodes}
+                    stackRatesByNodeId={stackRatesByNodeId}
+                    onFindProducers={onFindProducers}
+                    onFindUses={onFindUses}
                 />
 
                 <PlannerGraphColumn
@@ -55,6 +181,9 @@ export function PlannerGraphPreview({ recipe, draft }: PlannerGraphPreviewProps)
                     emptyLabel="No scaled outputs yet"
                     graph={graph}
                     nodes={outputNodes}
+                    stackRatesByNodeId={stackRatesByNodeId}
+                    onFindProducers={onFindProducers}
+                    onFindUses={onFindUses}
                 />
             </div>
 
@@ -71,14 +200,96 @@ export function PlannerGraphPreview({ recipe, draft }: PlannerGraphPreviewProps)
     )
 }
 
+interface PlannerPreviewMetricsProps {
+    summary: PlannerPlanSummary
+}
+
+function PlannerPreviewMetrics({ summary }: PlannerPreviewMetricsProps) {
+    return (
+        <div className="planner-preview-metrics">
+            {summary.targetOutput && (
+                <span>
+                    Target:{' '}
+                    <strong>{formatStackCompact(summary.targetOutput)}</strong>
+                </span>
+            )}
+
+            {summary.baseTargetRatePerSecond !== undefined && summary.targetOutput && (
+                <span>
+                    Base rate:{' '}
+                    <strong>
+                        {formatDecimal(summary.baseTargetRatePerSecond)}{' '}
+                        {summary.targetOutput.unit}/s
+                    </strong>
+                </span>
+            )}
+
+            {summary.operationsPerSecond !== undefined && (
+                <span>
+                    Recipe operations:{' '}
+                    <strong>{formatDecimal(summary.operationsPerSecond)} / sec</strong>
+                </span>
+            )}
+
+            {summary.exactMachineCount !== undefined && (
+                <span>
+                    Machines:{' '}
+                    <strong>
+                        {formatDecimal(summary.exactMachineCount)} exact
+                        {summary.roundedMachineCount !== undefined &&
+                            ` · build ${summary.roundedMachineCount}`}
+                    </strong>
+                </span>
+            )}
+
+            {summary.powerEstimate ? (
+                <>
+                    <span>
+                        Recipe draw:{' '}
+                        <strong>{formatNumber(summary.powerEstimate.recipeEuPerTick)} EU/t</strong>
+                    </span>
+                    <span>
+                        Average draw:{' '}
+                        <strong>{formatDecimal(summary.powerEstimate.exactEuPerTick)} EU/t</strong>
+                    </span>
+                    <span>
+                        Installed draw:{' '}
+                        <strong>{formatNumber(summary.powerEstimate.roundedEuPerTick)} EU/t</strong>
+                    </span>
+                </>
+            ) : (
+                <span>
+                    Power:{' '}
+                    <strong>
+                        {summary.usesEuPower
+                            ? 'Set a target rate to estimate EU/t'
+                            : 'Not EU-powered / fuel-based'}
+                    </strong>
+                </span>
+            )}
+        </div>
+    )
+}
+
 interface PlannerGraphColumnProps {
     title: string
     emptyLabel: string
     graph: VisualGraph
     nodes: VisualGraphNode[]
+    stackRatesByNodeId: Map<string, PlannerStackRate>
+    onFindProducers: (stack: ExportStack) => void
+    onFindUses: (stack: ExportStack) => void
 }
 
-function PlannerGraphColumn({ title, emptyLabel, graph, nodes }: PlannerGraphColumnProps) {
+function PlannerGraphColumn({
+    title,
+    emptyLabel,
+    graph,
+    nodes,
+    stackRatesByNodeId,
+    onFindProducers,
+    onFindUses,
+}: PlannerGraphColumnProps) {
     return (
         <div className="planner-graph-column">
             <h3>{title}</h3>
@@ -90,6 +301,9 @@ function PlannerGraphColumn({ title, emptyLabel, graph, nodes }: PlannerGraphCol
                             key={node.id}
                             graph={graph}
                             node={node}
+                            stackRate={stackRatesByNodeId.get(node.id)}
+                            onFindProducers={onFindProducers}
+                            onFindUses={onFindUses}
                         />
                     ))}
                 </div>
@@ -103,10 +317,20 @@ function PlannerGraphColumn({ title, emptyLabel, graph, nodes }: PlannerGraphCol
 interface PlannerGraphNodeCardProps {
     graph: VisualGraph
     node: VisualGraphNode
+    stackRate: PlannerStackRate | undefined
+    onFindProducers: (stack: ExportStack) => void
+    onFindUses: (stack: ExportStack) => void
 }
 
-function PlannerGraphNodeCard({ graph, node }: PlannerGraphNodeCardProps) {
+function PlannerGraphNodeCard({
+    graph,
+    node,
+    stackRate,
+    onFindProducers,
+    onFindUses,
+}: PlannerGraphNodeCardProps) {
     const relatedEdges = getRelatedEdges(graph, node)
+    const stackAction = getStackAction(node, stackRate, onFindProducers, onFindUses)
 
     return (
         <article className={`planner-graph-node planner-graph-node-${node.status ?? node.kind}`}>
@@ -135,8 +359,38 @@ function PlannerGraphNodeCard({ graph, node }: PlannerGraphNodeCardProps) {
                     ))}
                 </div>
             )}
+
+            {stackAction && (
+                <div className="planner-graph-node-actions">
+                    <button
+                        className="stack-action-button"
+                        type="button"
+                        onClick={stackAction.onClick}
+                    >
+                        {stackAction.label}
+                    </button>
+                </div>
+            )}
         </article>
     )
+}
+
+function getStackRatesByNodeId(summary: PlannerPlanSummary): Map<string, PlannerStackRate> {
+    const stackRatesByNodeId = new Map<string, PlannerStackRate>()
+
+    summary.unresolvedInputRates.forEach((rate, index) => {
+        stackRatesByNodeId.set(`input:${rate.stackKey}:${index}`, rate)
+    })
+
+    summary.targetOutputRates.forEach((rate, index) => {
+        stackRatesByNodeId.set(`target-output:${rate.stackKey}:${index}`, rate)
+    })
+
+    summary.byproductRates.forEach((rate, index) => {
+        stackRatesByNodeId.set(`byproduct:${rate.stackKey}:${index}`, rate)
+    })
+
+    return stackRatesByNodeId
 }
 
 function getRelatedEdges(graph: VisualGraph, node: VisualGraphNode): VisualGraphEdge[] {
@@ -149,6 +403,33 @@ function getEdgeLabel(edge: VisualGraphEdge, node: VisualGraphNode): string {
     }
 
     return `← ${edge.label ?? 'flow'}`
+}
+
+function getStackAction(
+    node: VisualGraphNode,
+    stackRate: PlannerStackRate | undefined,
+    onFindProducers: (stack: ExportStack) => void,
+    onFindUses: (stack: ExportStack) => void,
+): { label: string; onClick: () => void } | undefined {
+    if (!stackRate) {
+        return undefined
+    }
+
+    if (node.status === 'unresolved-input') {
+        return {
+            label: 'Find producers',
+            onClick: () => onFindProducers(stackRate.stack),
+        }
+    }
+
+    if (node.status === 'target-output' || node.status === 'byproduct') {
+        return {
+            label: 'Find uses',
+            onClick: () => onFindUses(stackRate.stack),
+        }
+    }
+
+    return undefined
 }
 
 function getNodeKindLabel(node: VisualGraphNode): string {

@@ -18,7 +18,6 @@ import { DiagnosticsGrid } from './components/DiagnosticsGrid'
 import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
 import { buildOutputGroups } from './lib/outputGroups'
-import { PlannerSummary } from './components/PlannerSummary'
 import {
   createPlannerDraft,
   getPlannerDraftRecipeId,
@@ -26,7 +25,6 @@ import {
   setPlannerDraftTargetRatePerSecond,
   type PlannerDraft,
 } from './planner/model/plannerDraft'
-import { PlannerRateBreakdown } from './components/PlannerRateBreakdown'
 import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
 import { PlannerGraphPreview } from './components/PlannerGraphPreview'
 
@@ -296,51 +294,37 @@ function App() {
         )}
 
         {plannedRecipe && plannerDraft && (
-            <PlannerSummary
-              recipe={plannedRecipe}
-              draft={plannerDraft}
-              onSelectRecipe={() => focusRecipe(plannedRecipe.id)}
-              onClearPlan={() => setPlannerDraft(undefined)}
-              onTargetRateChange={(targetRatePerSecond) =>
-                  setPlannerDraft((currentDraft) =>
-                    currentDraft
-                      ? setPlannerDraftTargetRatePerSecond(currentDraft, targetRatePerSecond)
-                      : undefined,
-                  )
-              }
-              onTargetOutputIndexChange={(targetOutputIndex) =>
-                  setPlannerDraft((currentDraft) =>
-                    currentDraft
-                      ? setPlannerDraftTargetOutputIndex(currentDraft, targetOutputIndex)
-                      : undefined,
-                  )
-              }
-            />
-        )}
-
-        {plannedRecipe && plannerDraft && (
-            <PlannerRateBreakdown
+            <PlannerGraphPreview
                 recipe={plannedRecipe}
                 draft={plannerDraft}
+                onSelectRecipe={() => focusRecipe(plannedRecipe.id)}
+                onClearPlan={() => setPlannerDraft(undefined)}
+                onTargetRateChange={(targetRatePerSecond) =>
+                    setPlannerDraft((currentDraft) =>
+                        currentDraft
+                            ? setPlannerDraftTargetRatePerSecond(currentDraft, targetRatePerSecond)
+                            : undefined,
+                    )
+                }
+                onTargetOutputIndexChange={(targetOutputIndex) =>
+                    setPlannerDraft((currentDraft) =>
+                        currentDraft
+                            ? setPlannerDraftTargetOutputIndex(currentDraft, targetOutputIndex)
+                            : undefined,
+                    )
+                }
                 onFindProducers={(stack) =>
-                  navigateToStack(stack, 'outputs', {
-                    stack,
-                    purpose: 'producers',
-                  })
+                    navigateToStack(stack, 'outputs', {
+                        stack,
+                        purpose: 'producers',
+                    })
                 }
                 onFindUses={(stack) =>
-                  navigateToStack(stack, 'inputs', {
-                    stack,
-                    purpose: 'uses',
-                  })
+                    navigateToStack(stack, 'inputs', {
+                        stack,
+                        purpose: 'uses',
+                    })
                 }
-            />
-        )}
-
-        {plannedRecipe && plannerDraft && (
-            <PlannerGraphPreview
-              recipe={plannedRecipe}
-              draft={plannerDraft}
             />
         )}
 
