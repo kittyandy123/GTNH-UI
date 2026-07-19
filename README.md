@@ -165,6 +165,15 @@ The current test suite verifies that:
 
 The fixture is copied directly from the exporter repository so that the test also acts as a cross-repository compatibility check.
 
+GitHub Actions runs the complete validation pipeline for pull requests and pushes to `master`:
+
+- `npm ci`
+- `npm run test`
+- `npm run lint`
+- `npm run build`
+
+The workflow is defined in [`.github/workflows/build-and-test.yml`](.github/workflows/build-and-test.yml).
+
 ## Current limitations
 
 The project currently has several deliberate limitations:
