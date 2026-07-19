@@ -2,7 +2,7 @@
 
 A browser-based recipe explorer and production-planning application for **GregTech: New Horizons**.
 
-GTNH Planner UI consumes recipe data exported from a running GTNH instance by the separate [GTNH Calculator Utility](https://github.com/kittyandy123/GTNH) forge mode.
+GTNH Planner UI consumes recipe data exported from a running GTNH instance by the separate [GTNH Calculator Utility](https://github.com/kittyandy123/GTNH) forge mod.
 
 ## Project status
 
@@ -70,7 +70,7 @@ The authoritative schema and fixture remain in the exporter repository. The copi
 
 Synchronization details and the current exporter baseline are recorded in:
 ```text
-/src/contracts/README.md
+src/contracts/README.md
 ```
 
 ## Current capabilities
