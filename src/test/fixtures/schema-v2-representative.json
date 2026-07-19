@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 2,
+  "pack": {
+    "name": "GT New Horizons",
+    "minecraftVersion": "1.7.10"
+  },
+  "export": {
+    "source": "gtnh-calculator-utility",
+    "exporterVersion": "0.1.0",
+    "exportedAt": "2026-07-19T00:00:00Z"
+  },
+  "diagnostics": {
+    "totalRecipes": 1,
+    "duplicateRecipesSkipped": 0,
+    "displayNameFallbacks": 0,
+    "displayNameFallbackItems": [],
+    "recipesSkippedDueToError": 0,
+    "recipeErrorsByMachine": {},
+    "toolInputsExtracted": 1,
+    "toolInputsByMachine": {
+      "gregtech:mixer": 1
+    },
+    "zeroAmountInputsMovedToTools": 0,
+    "zeroAmountInputsRemaining": 0,
+    "inferredToolAmounts": 0,
+    "sampleToolInputs": [
+      "gregtech:mixer: Plate Mold [gregtech:shape_mold_plate:0]"
+    ],
+    "recipeCountsByMachine": {
+      "gregtech:mixer": 1
+    }
+  },
+  "recipes": [
+    {
+      "id": "gregtech:mixer:test_recipe",
+      "machine": {
+        "id": "gregtech:mixer",
+        "name": "Mixer",
+        "category": "GregTech"
+      },
+      "durationTicks": 40,
+      "durationSeconds": 2.0,
+      "eut": 30,
+      "inputs": [
+        {
+          "kind": "item",
+          "id": "minecraft:clay_ball",
+          "meta": 0,
+          "displayName": "Clay",
+          "amount": 2,
+          "unit": "items"
+        }
+      ],
+      "tools": [
+        {
+          "kind": "item",
+          "id": "gregtech:shape_mold_plate",
+          "meta": 0,
+          "displayName": "Plate Mold",
+          "amount": 1,
+          "unit": "items"
+        }
+      ],
+      "outputs": [
+        {
+          "kind": "fluid",
+          "id": "water",
+          "meta": 0,
+          "displayName": "Water",
+          "amount": 1000,
+          "unit": "L",
+          "chance": 0.75
+        }
+      ],
+      "metadata": {
+        "circuit": 24
+      }
+    }
+  ]
+}

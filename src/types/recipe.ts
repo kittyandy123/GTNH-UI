@@ -26,12 +26,12 @@ export interface ExportDiagnostics {
     recipeErrorsByMachine: Record<string, number>
     recipeCountsByMachine: Record<string, number>
 
-    toolInputsExtracted?: number
-    toolInputsByMachine?: Record<string, number>
-    zeroAmountInputsMovedToTools?: number
-    zeroAmountInputsRemaining?: number
-    inferredToolAmounts?: number
-    sampleToolInputs?: string[]
+    toolInputsExtracted: number
+    toolInputsByMachine: Record<string, number>
+    zeroAmountInputsMovedToTools: number
+    zeroAmountInputsRemaining: number
+    inferredToolAmounts: number
+    sampleToolInputs: string[]
 }
 
 export interface ExportRecipe {
@@ -53,12 +53,12 @@ export interface MachineInfo {
 }
 
 export interface ExportStack {
-    kind: 'item' | 'fluid' | string
+    kind: 'item' | 'fluid'
     id: string
     meta: number
     displayName: string
     amount: number
-    unit: 'items' | 'L' | string
+    unit: 'items' | 'L'
     chance?: number
 }
 

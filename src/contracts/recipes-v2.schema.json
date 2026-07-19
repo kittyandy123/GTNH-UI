@@ -1,0 +1,359 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/kittyandy123/GTNH/master/schema/recipes-v2.schema.json",
+  "title": "GTNH Calculator Utility Recipe Export Schema v2",
+  "description": "Schema for recipes.json documents produced by GTNH Calculator Utility schema version 2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "pack",
+    "export",
+    "diagnostics",
+    "recipes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "pack": {
+      "$ref": "#/$defs/pack"
+    },
+    "export": {
+      "$ref": "#/$defs/exportInfo"
+    },
+    "diagnostics": {
+      "$ref": "#/$defs/diagnostics"
+    },
+    "recipes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/recipe"
+      }
+    }
+  },
+  "$defs": {
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "minecraftVersion"
+      ],
+      "properties": {
+        "name": {
+          "const": "GT New Horizons"
+        },
+        "minecraftVersion": {
+          "const": "1.7.10"
+        }
+      }
+    },
+    "exportInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "exporterVersion",
+        "exportedAt"
+      ],
+      "properties": {
+        "source": {
+          "const": "gtnh-calculator-utility"
+        },
+        "exporterVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exportedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "totalRecipes",
+        "duplicateRecipesSkipped",
+        "displayNameFallbacks",
+        "displayNameFallbackItems",
+        "recipesSkippedDueToError",
+        "recipeErrorsByMachine",
+        "toolInputsExtracted",
+        "toolInputsByMachine",
+        "zeroAmountInputsMovedToTools",
+        "zeroAmountInputsRemaining",
+        "inferredToolAmounts",
+        "sampleToolInputs",
+        "recipeCountsByMachine"
+      ],
+      "properties": {
+        "totalRecipes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicateRecipesSkipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "displayNameFallbacks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "displayNameFallbackItems": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "recipesSkippedDueToError": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recipeErrorsByMachine": {
+          "$ref": "#/$defs/nonNegativeIntegerMap"
+        },
+        "toolInputsExtracted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "toolInputsByMachine": {
+          "$ref": "#/$defs/nonNegativeIntegerMap"
+        },
+        "zeroAmountInputsMovedToTools": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "zeroAmountInputsRemaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inferredToolAmounts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampleToolInputs": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "recipeCountsByMachine": {
+          "$ref": "#/$defs/nonNegativeIntegerMap"
+        }
+      }
+    },
+    "recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "machine",
+        "durationTicks",
+        "durationSeconds",
+        "eut",
+        "inputs",
+        "outputs",
+        "metadata"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine": {
+          "$ref": "#/$defs/machine"
+        },
+        "durationTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durationSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "eut": {
+          "type": "integer"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stack"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stack"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stack"
+          }
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        }
+      }
+    },
+    "machine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "category"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "meta",
+        "displayName",
+        "amount",
+        "unit"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "item",
+            "fluid"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "meta": {
+          "type": "integer"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unit": {
+          "enum": [
+            "items",
+            "L"
+          ]
+        },
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "item"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "const": "items"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "fluid"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "meta": {
+                "const": 0
+              },
+              "unit": {
+                "const": "L"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "circuit": {
+          "type": "integer"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "fakeRecipe": {
+          "type": "boolean"
+        },
+        "specialValue": {
+          "type": "integer"
+        },
+        "needsEmptyOutput": {
+          "type": "boolean"
+        },
+        "nbtSensitive": {
+          "type": "boolean"
+        },
+        "recipeMap": {
+          "type": "string"
+        },
+        "recipeMapUnlocalizedName": {
+          "type": "string"
+        },
+        "recipeCategory": {
+          "type": "string"
+        },
+        "neiDescription": {
+          "type": "string"
+        }
+      }
+    },
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nonNegativeIntegerMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  }
+}
