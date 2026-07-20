@@ -44,6 +44,27 @@ describe('validateExportDocument', () => {
         ).toBe(negativeDurationExport)
     })
 
+    it('accepts classified sentinel-duration recipes', () => {
+        const sentinelDurationExport = {
+            ...representativeExport,
+            recipes: [
+                {
+                    ...representativeExport.recipes[0],
+                    durationTicks: 2_147_483_647,
+                    durationSeconds:  2_147_483_647 / 20,
+                    planning: {
+                        supported: false,
+                        issues: [
+                            'sentinel-duration-suspected',
+                        ],
+                    },
+                },
+            ],
+        }
+
+        expect(validateExportDocument(sentinelDurationExport)).toBe(sentinelDurationExport)
+    })
+
     it('rejects malformed schema-v2 documents', () => {
         const malformedExport = {
             ...representativeExport,

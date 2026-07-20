@@ -149,6 +149,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "suspectedSentinelDurationRecipes": {
+          "type": "integer",
+          "minimum": 0
+        },
         "sampleNonPlannableRecipes": {
           "$ref": "#/$defs/stringArray"
         },
@@ -344,7 +348,8 @@
             "enum": [
               "negative-duration",
               "zero-duration",
-              "duration-overflow-suspected"
+              "duration-overflow-suspected",
+              "sentinel-duration-suspected"
             ]
           }
         }

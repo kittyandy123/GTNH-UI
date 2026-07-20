@@ -7,7 +7,7 @@ The authoritative contract is maintained in the
 
 Current synchronized exporter baseline:
 
-- Exporter commit: `1732510`
+- Exporter commit: `76223ff`
 - Schema: `schema/recipes-v2.schema.json`
 - Representative fixture: `src/test/resources/fixtures/schema-v2-representative.json`
 
