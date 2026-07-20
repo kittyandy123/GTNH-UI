@@ -372,7 +372,13 @@ function App() {
                 <RecipeDetails
                     recipe={selectedRecipe}
                     isPlanned={plannedRecipeId === selectedRecipe.id}
-                    onPlanRecipe={() => setPlannerDraft(createPlannerDraft(selectedRecipe))}
+                    onPlanRecipe={() => {
+                      if (selectedRecipe.planning?.supported === false) {
+                        return
+                      }
+
+                      setPlannerDraft(createPlannerDraft(selectedRecipe))
+                    }}
                     onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
                     onFindUses={(stack) => navigateToStack(stack, 'inputs')}
                 />

@@ -32,6 +32,21 @@ export interface ExportDiagnostics {
     zeroAmountInputsRemaining: number
     inferredToolAmounts: number
     sampleToolInputs: string[]
+    nonPlannableRecipes?: number
+    nonPlannableRecipesByMachine?: Record<string, number>
+    nonPositiveDurationRecipes?: number
+    suspectedDurationOverflowRecipes?: number
+    sampleNonPlannableRecipes?: string[]
+}
+
+export type RecipePlanningIssue =
+    | 'negative-duration'
+    | 'zero-duration'
+    | 'duration-overflow-suspected'
+
+export interface RecipePlanningInfo {
+    supported: false
+    issues: RecipePlanningIssue[]
 }
 
 export interface ExportRecipe {
@@ -43,6 +58,7 @@ export interface ExportRecipe {
     inputs: ExportStack[]
     tools?: ExportStack[]
     outputs: ExportStack[]
+    planning?: RecipePlanningInfo
     metadata: RecipeMetadata
 }
 

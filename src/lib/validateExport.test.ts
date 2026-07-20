@@ -20,13 +20,42 @@ describe('validateExportDocument', () => {
             )
     })
 
+    it('accepts schema-v2 exports with classified raw negative durations', () => {
+        const negativeDurationExport = {
+            ...representativeExport,
+            recipes: [
+                {
+                    ...representativeExport.recipes[0],
+                    durationTicks: -2147483569,
+                    durationSeconds: -107374178.45,
+                    planning: {
+                        supported: false,
+                        issues: [
+                            'negative-duration',
+                            'duration-overflow-suspected',
+                        ],
+                    },
+                },
+            ],
+        }
+
+        expect(
+            validateExportDocument(negativeDurationExport),
+        ).toBe(negativeDurationExport)
+    })
+
     it('rejects malformed schema-v2 documents', () => {
         const malformedExport = {
             ...representativeExport,
             recipes: [
                 {
                     ...representativeExport.recipes[0],
-                    durationTicks: -1,
+                    outputs: [
+                        {
+                            ...representativeExport.recipes[0].outputs[0],
+                            amount: -1,
+                        },
+                    ],
                 },
             ],
         }

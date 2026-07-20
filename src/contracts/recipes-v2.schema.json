@@ -134,6 +134,24 @@
         "sampleToolInputs": {
           "$ref": "#/$defs/stringArray"
         },
+        "nonPlannableRecipes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nonPlannableRecipesByMachine": {
+          "$ref": "#/$defs/nonNegativeIntegerMap"
+        },
+        "nonPositiveDurationRecipes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "suspectedDurationOverflowRecipes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampleNonPlannableRecipes": {
+          "$ref": "#/$defs/stringArray"
+        },
         "recipeCountsByMachine": {
           "$ref": "#/$defs/nonNegativeIntegerMap"
         }
@@ -161,12 +179,10 @@
           "$ref": "#/$defs/machine"
         },
         "durationTicks": {
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
         },
         "durationSeconds": {
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "eut": {
           "type": "integer"
@@ -188,6 +204,9 @@
           "items": {
             "$ref": "#/$defs/stack"
           }
+        },
+        "planning": {
+          "$ref": "#/$defs/planning"
         },
         "metadata": {
           "$ref": "#/$defs/metadata"
@@ -305,6 +324,31 @@
           }
         }
       ]
+    },
+    "planning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supported",
+        "issues"
+      ],
+      "properties": {
+        "supported": {
+          "const": false
+        },
+        "issues": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "negative-duration",
+              "zero-duration",
+              "duration-overflow-suspected"
+            ]
+          }
+        }
+      }
     },
     "metadata": {
       "type": "object",
