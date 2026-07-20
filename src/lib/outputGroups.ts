@@ -1,7 +1,7 @@
 import { formatStackIdentity, normalizeSearchText } from './recipeHelpers'
 import type { NormalizedExportRecipe } from './normalizeExport'
-import type { ExportStack } from '../types/recipe'
 import type { OutputRecipeGroup } from '../types/recipeBrowser'
+import { getStackKey } from '../catalog/stackKey'
 
 export function buildOutputGroups(recipes: NormalizedExportRecipe[], searchText: string): OutputRecipeGroup[] {
     const query = normalizeSearchText(searchText)
@@ -9,7 +9,7 @@ export function buildOutputGroups(recipes: NormalizedExportRecipe[], searchText:
 
     for (const recipe of recipes) {
         for (const output of recipe.outputs) {
-            const key = getOutputStackKey(output)
+            const key = getStackKey(output)
             const existingGroup = groups.get(key)
 
             if (existingGroup) {
@@ -28,14 +28,6 @@ export function buildOutputGroups(recipes: NormalizedExportRecipe[], searchText:
     return Array.from(groups.values()).sort((left, right) =>
       compareOutputGroups(left, right, query),
     )
-}
-
-function getOutputStackKey(output: ExportStack): string {
-    if (output.kind === 'fluid') {
-        return `${output.kind}:${output.id}`
-    }
-
-    return `${output.kind}:${output.id}:${output.meta}`
 }
 
 function compareOutputGroups(left: OutputRecipeGroup, right: OutputRecipeGroup, query: string): number {
