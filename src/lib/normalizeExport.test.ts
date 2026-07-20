@@ -64,6 +64,37 @@ describe('normalizeExportDocument', () => {
         expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(0)
     })
 
+    it('derives sentinel classification from maximum durations', () => {
+        const document = createDocument()
+
+        document.recipes[0].durationTicks = 2_147_483_647
+        document.recipes[0].durationSeconds = 2_147_483_647 / 20
+
+        const normalized = normalizeExportDocument(document)
+
+        expect(normalized.recipes[0].planning).toEqual({
+            supported: false,
+            issues: ['sentinel-duration-suspected'],
+        })
+
+        expect(normalized.diagnostics.nonPlannableRecipes).toBe(1)
+        expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(0)
+        expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(0)
+        expect(normalized.diagnostics.suspectedSentinelDurationRecipes).toBe(1)
+    })
+
+    it ('leaves durations below the sentinel boundary plannable', () => {
+        const document = createDocument()
+
+        document.recipes[0].durationTicks =  2_147_483_647 - 3
+        document.recipes[0].durationSeconds =  (2_147_483_647 - 3) / 20
+
+        const normalized = normalizeExportDocument(document)
+
+        expect(normalized.recipes[0].planning).toBeUndefined()
+        expect(normalized.diagnostics.suspectedSentinelDurationRecipes).toBe(0)
+    })
+
     it ('augments incomplete exporter timing classification', () => {
         const document = createDocument()
 

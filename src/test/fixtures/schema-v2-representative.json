@@ -30,6 +30,7 @@
     "nonPlannableRecipesByMachine": {},
     "nonPositiveDurationRecipes": 0,
     "suspectedDurationOverflowRecipes": 0,
+    "suspectedSentinelDurationRecipes": 0,
     "sampleNonPlannableRecipes": [],
     "recipeCountsByMachine": {
       "gregtech:mixer": 1

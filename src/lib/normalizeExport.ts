@@ -7,6 +7,9 @@ import type {
     RecipePlanningIssue,
 } from '../types/recipe'
 
+const MAX_SIGNED_INT_32 = 2_147_483_647
+const SENTINEL_DURATION_FLOOR_TICKS = MAX_SIGNED_INT_32 - 2
+
 export interface NormalizedExportDocument extends Omit<ExportDocument, 'recipes'> {
     recipes: NormalizedExportRecipe[]
 }
@@ -74,6 +77,8 @@ function normalizeRecipePlanning(recipe: ExportRecipe): RecipePlanningInfo | und
         }
     } else if (recipe.durationTicks === 0 || recipe.durationSeconds === 0) {
         issues.add('zero-duration')
+    } else if (recipe.durationTicks >= SENTINEL_DURATION_FLOOR_TICKS) {
+        issues.add('sentinel-duration-suspected')
     }
 
     if (issues.size === 0) {
@@ -116,6 +121,13 @@ function normalizePlanningDiagnostics(diagnostics: ExportDiagnostics, recipes: N
             ),
         ).length
 
+    const suspectedSentinelDurationRecipes =
+        nonPlannableRecipes.filter((recipe) =>
+            recipe.planning?.issues.includes(
+                'sentinel-duration-suspected',
+            ),
+        ).length
+
     const sampleNonPlannableRecipes =
         nonPlannableRecipes.slice(0, 25).map((recipe) => {
             const issues =
@@ -134,6 +146,7 @@ function normalizePlanningDiagnostics(diagnostics: ExportDiagnostics, recipes: N
         nonPlannableRecipesByMachine,
         nonPositiveDurationRecipes,
         suspectedDurationOverflowRecipes,
+        suspectedSentinelDurationRecipes,
         sampleNonPlannableRecipes,
     }
 }

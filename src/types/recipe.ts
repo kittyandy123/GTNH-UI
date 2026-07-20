@@ -36,6 +36,7 @@ export interface ExportDiagnostics {
     nonPlannableRecipesByMachine?: Record<string, number>
     nonPositiveDurationRecipes?: number
     suspectedDurationOverflowRecipes?: number
+    suspectedSentinelDurationRecipes?: number
     sampleNonPlannableRecipes?: string[]
 }
 
@@ -43,6 +44,7 @@ export type RecipePlanningIssue =
     | 'negative-duration'
     | 'zero-duration'
     | 'duration-overflow-suspected'
+    | 'sentinel-duration-suspected'
 
 export interface RecipePlanningInfo {
     supported: false

@@ -124,6 +124,17 @@ export function RecipeDetails({ recipe, onFindProducers, onFindUses, onPlanRecip
 function getPlanningWarning(recipe: NormalizedExportRecipe): string {
     const issues = recipe.planning?.issues ?? []
 
+    if (issues.includes('sentinel-duration-suspected')) {
+        return (
+            'The exported duration is at or near the ' +
+                'maximum signed integer value and appears ' +
+                'to be a sentinel or invalid generated ' +
+                'duration. The recipe remains available ' +
+                'for browsing, but rates and machine counts ' +
+                'cannot be calculated safely.'
+        )
+    }
+
     if (issues.includes('duration-overflow-suspected')) {
         return (
             'The exported duration appears to contain ' +
