@@ -5,7 +5,9 @@ import { normalizeExportDocument } from '../lib/normalizeExport'
 import { buildRecipeCatalog } from './recipeCatalog'
 import {
     getConsumerRecipesForStack,
+    getMachineRecipeCounts,
     getProducerRecipesForStack,
+    getRecipesForMachine,
 } from './recipeCatalogQueries'
 
 function createDocument() {
@@ -89,5 +91,84 @@ describe('recipe catalog stack queries', () => {
                 unknownStack,
             ),
         ).toEqual([])
+    })
+})
+
+describe('recipe catalog machine queries', () => {
+    it('resolves recipes belonging to a machine', () => {
+        const document = createDocument()
+        const recipe = document.recipes[0]
+
+        const secondRecipe = {
+            ...recipe,
+            id: `${recipe.id}:second`,
+        }
+
+        document.recipes.push(secondRecipe)
+
+        const catalog = buildRecipeCatalog(document)
+
+        const machineRecipes = getRecipesForMachine(
+            catalog,
+            recipe.machine.id,
+        )
+
+        expect(machineRecipes).toEqual([
+            recipe,
+            secondRecipe,
+        ])
+
+        expect(machineRecipes[0]).toBe(recipe)
+        expect(machineRecipes[1]).toBe(secondRecipe)
+    })
+
+    it('returns an empty result for an unknown machine', () => {
+        const document = createDocument()
+        const catalog = buildRecipeCatalog(document)
+
+        expect(
+            getRecipesForMachine(
+                catalog,
+                'test:missing-machine',
+            ),
+        ).toEqual([])
+    })
+
+    it('derives machine counts in descending order', () => {
+        const document = createDocument()
+        const recipe = document.recipes[0]
+
+        const sameMachineRecipe = {
+            ...recipe,
+            id: `${recipe.id}:same-machine`,
+        }
+
+        const otherMachineRecipe = {
+            ...recipe,
+            id: `${recipe.id}:other-machine`,
+            machine: {
+                ...recipe.machine,
+                id: 'test:other-machine',
+                name: 'Other Machine',
+            },
+        }
+
+        document.recipes.push(
+            sameMachineRecipe,
+            otherMachineRecipe,
+        )
+
+        const catalog = buildRecipeCatalog(document)
+
+        expect(getMachineRecipeCounts(catalog)).toEqual([
+            {
+                machineId: recipe.machine.id,
+                count: 2,
+            },
+            {
+                machineId: 'test:other-machine',
+                count: 1,
+            },
+        ])
     })
 })
