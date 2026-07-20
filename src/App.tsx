@@ -34,6 +34,10 @@ import {
   buildRecipeCatalog,
   type RecipeCatalog,
 } from './catalog/recipeCatalog'
+import {
+  getConsumerRecipesForStack,
+  getProducerRecipesForStack,
+} from './catalog/recipeCatalogQueries'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -59,6 +63,14 @@ type LoadState =
     }
   | { status: 'error'; message: string }
 
+type StackNavigationMode =
+  Extract<SearchMode, 'inputs' | 'outputs'>
+
+interface StackNavigationQuery {
+  stack: ExportStack
+  mode: StackNavigationMode
+}
+
 interface PlannerNavigationContext {
   stack: ExportStack
   purpose: PlannerNavigationPurpose
@@ -72,6 +84,7 @@ function App() {
   const [selectedOutputGroupKey, setSelectedOutputGroupKey] = useState<string | undefined>()
   const [selectedMachineId, setSelectedMachineId] = useState<string | undefined>()
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | undefined>()
+  const [stackNavigationQuery, setStackNavigationQuery] = useState<StackNavigationQuery>()
   const [plannerDraft, setPlannerDraft] = useState<PlannerDraft | undefined>()
   const [plannerNavigationContext, setPlannerNavigationContext] = useState<PlannerNavigationContext | undefined>()
 
@@ -140,6 +153,21 @@ function App() {
       return []
     }
 
+    if (recipeCatalog && stackNavigationQuery) {
+      const indexedRecipes =
+          stackNavigationQuery.mode === 'outputs'
+              ? getProducerRecipesForStack(
+                  recipeCatalog,
+                  stackNavigationQuery.stack,
+              )
+              : getConsumerRecipesForStack(
+                  recipeCatalog,
+                  stackNavigationQuery.stack,
+              )
+
+      return [...indexedRecipes]
+    }
+
     const query = normalizeSearchText(searchText)
 
     return exportDocument.recipes.filter((recipe) => {
@@ -153,7 +181,14 @@ function App() {
 
       return recipeMatchesQuery(recipe, query, searchMode)
     })
-  }, [exportDocument, searchText, searchMode, selectedMachineId])
+  }, [
+    exportDocument,
+    recipeCatalog,
+    stackNavigationQuery,
+    searchText,
+    searchMode,
+    selectedMachineId
+  ])
 
   const visibleRecipes = filteredRecipes.slice(0, MAX_VISIBLE_RECIPES)
 
@@ -186,16 +221,23 @@ function App() {
     setSelectedMachineId(machineId)
     setSelectedRecipeId(undefined)
     setSelectedOutputGroupKey(undefined)
+    setStackNavigationQuery(undefined)
     setPlannerNavigationContext(undefined)
   }
 
-  function navigateToStack(stack: ExportStack, mode: SearchMode, plannerContext?: PlannerNavigationContext) {
+  function navigateToStack(stack: ExportStack, mode: StackNavigationMode, plannerContext?: PlannerNavigationContext) {
     setSearchText(formatExactStackSearchToken(stack))
     setSearchMode(mode)
     setResultViewMode('exact')
     setSelectedMachineId(undefined)
     setSelectedRecipeId(undefined)
     setSelectedOutputGroupKey(undefined)
+
+    setStackNavigationQuery({
+      stack,
+      mode,
+    })
+
     setPlannerNavigationContext(plannerContext)
   }
 
@@ -206,6 +248,7 @@ function App() {
     setSelectedMachineId(undefined)
     setSelectedRecipeId(recipeId)
     setSelectedOutputGroupKey(undefined)
+    setStackNavigationQuery(undefined)
     setPlannerNavigationContext(undefined)
   }
 
@@ -249,6 +292,7 @@ function App() {
               setSearchText(event.target.value)
               setSelectedRecipeId(undefined)
               setSelectedOutputGroupKey(undefined)
+              setStackNavigationQuery(undefined)
               setPlannerNavigationContext(undefined)
             }}
           />
@@ -268,6 +312,7 @@ function App() {
                     setSearchMode(option.value)
                     setSelectedRecipeId(undefined)
                     setSelectedOutputGroupKey(undefined)
+                    setStackNavigationQuery(undefined)
                     setPlannerNavigationContext(undefined)
                   }}
                 >
