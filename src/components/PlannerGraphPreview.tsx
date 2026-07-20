@@ -1,3 +1,4 @@
+import { useState, type KeyboardEvent } from 'react'
 import {
     formatDecimal,
     formatNumber,
@@ -13,15 +14,26 @@ import {
     type PlannerStackRate,
 } from '../planner/calc/planSummary'
 import type { ExportStack } from '../types/recipe'
-
-import { useState, type KeyboardEvent } from 'react'
+import type {
+    ConstraintSolveMode,
+    MachineCountMode,
+    PlannerStackConstraintRole,
+    StackKey,
+} from '../planner/model/plannerPlan'
 
 interface PlannerGraphPreviewProps {
     recipe: NormalizedExportRecipe
     draft: PlannerDraft
     onSelectRecipe: () => void
     onClearPlan: () => void
-    onTargetRateChange: (targetRatePerSecond: number | undefined) => void
+    onMachineCountModeChange: (machineCountMode: MachineCountMode) => void
+    onFixedMachineCountChange: (fixedMachineCount: number | undefined) => void
+    onConstraintSolveModeChange: (solveMode: ConstraintSolveMode) => void
+    onStackConstraintRateChange: (
+        stackKey: StackKey,
+        role: PlannerStackConstraintRole,
+        ratePerSecond: number | undefined,
+    ) => void
     onTargetOutputIndexChange: (targetOutputIndex: number) => void
     onFindProducers: (stack: ExportStack) => void
     onFindUses: (stack: ExportStack) => void
@@ -33,16 +45,16 @@ export function PlannerGraphPreview({
     draft,
     onSelectRecipe,
     onClearPlan,
-    onTargetRateChange,
+    onMachineCountModeChange,
+    onFixedMachineCountChange,
+    onConstraintSolveModeChange,
+    onStackConstraintRateChange,
     onTargetOutputIndexChange,
     onFindProducers,
     onFindUses,
     onOpenPlannerView,
 }: PlannerGraphPreviewProps) {
     const summary = computePlannerDraftSummary(recipe, draft)
-    const targetRateInputValue = summary.targetRatePerSecond ?? summary.baseTargetRatePerSecond ?? 1
-    const [targetRateInputDraft, setTargetRateInputDraft] = useState<string | undefined>()
-    const targetRateInput = targetRateInputDraft ?? String(targetRateInputValue)
     const graph = buildVisualGraphFromPlanSummary(summary)
     const stackRatesByNodeId = getStackRatesByNodeId(summary)
 
@@ -57,8 +69,9 @@ export function PlannerGraphPreview({
                     <p className="eyebrow">Graph preview</p>
                     <h2>Single-line plan graph</h2>
                     <p>
-                        Main-screen preview for the selected recipe. Open a named planner workspace
-                        for recursive planning.
+                        Main-screen preview for one recipe. Machine count math here uses base
+                        recipe timing only; full tier and multiblock behavior belong in planner
+                        workspaces later.
                     </p>
                 </div>
 
@@ -68,9 +81,9 @@ export function PlannerGraphPreview({
                         type="button"
                         disabled={!onOpenPlannerView}
                         title={
-                        onOpenPlannerView
-                            ? undefined
-                            : 'Named planner workspaces are the next implementation step.'
+                            onOpenPlannerView
+                                ? undefined
+                                : 'Named planner workspaces are the next implementation step.'
                         }
                         onClick={onOpenPlannerView}
                     >
@@ -90,7 +103,7 @@ export function PlannerGraphPreview({
             <div className="planner-preview-controls">
                 {recipe.outputs.length > 1 && (
                     <label className="target-output-field">
-                        <span>Target output</span>
+                        <span>Primary output</span>
                         <select
                             value={summary.targetOutputIndex}
                             onChange={(event) => {
@@ -109,77 +122,70 @@ export function PlannerGraphPreview({
                     </label>
                 )}
 
-                <label className="target-rate-field">
-                    <span>Target / sec</span>
-                    <input
-                        min="0"
-                        step="0.001"
-                        type="number"
-                        value={targetRateInput}
-                        onBlur={() => {
-                            const parsedValue = Number(targetRateInput)
-
-                            if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
-                                setTargetRateInputDraft(undefined)
-                                onTargetRateChange(targetRateInputValue)
-                                return
-                            }
-
-                            setTargetRateInputDraft(undefined)
-                        }}
+                <label className="target-output-field">
+                    <span>Machine count</span>
+                    <select
+                        value={summary.machineCountMode}
                         onChange={(event) => {
-                            const rawValue = event.target.value.trim()
-                            setTargetRateInputDraft(rawValue)
-
-                            const parsedValue = Number(rawValue)
-
-                            if (!Number.isFinite(parsedValue) && parsedValue > 0) {
-                                onTargetRateChange(parsedValue)
-                            }
+                            onMachineCountModeChange(event.target.value as MachineCountMode)
                         }}
-                    />
+                    >
+                        <option value="auto">Auto calculate</option>
+                        <option value="fixed">Fixed count</option>
+                    </select>
+                </label>
 
-                    <div className="target-rate-presets">
-                        {[1, 5, 10].map((rate) => (
-                            <button
-                                key={rate}
-                                type="button"
-                                onClick={() => onTargetRateChange(rate)}
-                            >
-                                {rate}/s
-                            </button>
-                        ))}
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setTargetRateInputDraft(undefined)
-                                onTargetRateChange(undefined)
+                {summary.machineCountMode === 'fixed' && (
+                    <label className="target-rate-field">
+                        <span>Fixed machines</span>
+                        <input
+                            min="0"
+                            step="1"
+                            type="number"
+                            value={summary.fixedMachineCount ?? ''}
+                            placeholder="1"
+                            onChange={(event) => {
+                                onFixedMachineCountChange(parseOptionalPositiveNumber(event.target.value))
                             }}
-                        >
-                            Reset
-                        </button>
-                    </div>
+                        />
+                    </label>
+                )}
+
+                <label className="target-output-field">
+                    <span>Solve from</span>
+                    <select
+                        value={summary.solveMode}
+                        onChange={(event) => {
+                            onConstraintSolveModeChange(event.target.value as ConstraintSolveMode)
+                        }}
+                    >
+                        <option value="from-outputs">Wanted outputs</option>
+                        <option value="from-inputs">Provided inputs</option>
+                    </select>
                 </label>
             </div>
 
             <PlannerPreviewMetrics summary={summary} />
 
-            {summary.targetRatePerSecond === undefined && (
-                <p className="planner-rate-note">
-                    Set a target rate to show scaled graph edges.
-                </p>
+            {summary.assumptionWarnings.length > 0 && (
+                <div className="planner-rate-note">
+                    {summary.assumptionWarnings.map((warning) => (
+                        <p key={warning}>{warning}</p>
+                    ))}
+                </div>
             )}
 
             <div className="planner-graph-grid">
                 <PlannerGraphColumn
-                    title="Unresolved inputs"
-                    emptyLabel="No scaled inputs yet"
+                    title="Inputs"
+                    emptyLabel="No inputs"
                     graph={graph}
                     nodes={inputNodes}
                     stackRatesByNodeId={stackRatesByNodeId}
+                    solveMode={summary.solveMode}
                     onFindProducers={onFindProducers}
                     onFindUses={onFindUses}
+                    onStackConstraintRateChange={onStackConstraintRateChange}
                 />
 
                 <PlannerGraphColumn
@@ -188,18 +194,22 @@ export function PlannerGraphPreview({
                     graph={graph}
                     nodes={recipeNodes}
                     stackRatesByNodeId={stackRatesByNodeId}
+                    solveMode={summary.solveMode}
                     onFindProducers={onFindProducers}
                     onFindUses={onFindUses}
+                    onStackConstraintRateChange={onStackConstraintRateChange}
                 />
 
                 <PlannerGraphColumn
                     title="Outputs"
-                    emptyLabel="No scaled outputs yet"
+                    emptyLabel="No outputs"
                     graph={graph}
                     nodes={outputNodes}
                     stackRatesByNodeId={stackRatesByNodeId}
+                    solveMode={summary.solveMode}
                     onFindProducers={onFindProducers}
                     onFindUses={onFindUses}
+                    onStackConstraintRateChange={onStackConstraintRateChange}
                 />
             </div>
 
@@ -242,8 +252,24 @@ function PlannerPreviewMetrics({ summary }: PlannerPreviewMetricsProps) {
 
             {summary.operationsPerSecond !== undefined && (
                 <span>
-                    Recipe operations:{' '}
+                    Recipe cycles:{' '}
                     <strong>{formatDecimal(summary.operationsPerSecond)} / sec</strong>
+                </span>
+            )}
+
+            {summary.machineCountMode === 'fixed' ? (
+                <span>
+                    Machine mode:{' '}
+                    <strong>
+                        Fixed
+                        {summary.fixedMachineCount !== undefined &&
+                            ` · ${formatDecimal(summary.fixedMachineCount)} machines`}
+                    </strong>
+                </span>
+            ) : (
+                <span>
+                    Machine mode:{' '}
+                    <strong>Auto calculate</strong>
                 </span>
             )}
 
@@ -252,9 +278,16 @@ function PlannerPreviewMetrics({ summary }: PlannerPreviewMetricsProps) {
                     Machines:{' '}
                     <strong>
                         {formatDecimal(summary.exactMachineCount)} exact
-                        {summary.roundedMachineCount !== undefined &&
-                            ` · build ${summary.roundedMachineCount}`}
+                        {summary.buildMachineCount !== undefined &&
+                            ` · build ${formatDecimal(summary.buildMachineCount)}`}
                     </strong>
+                </span>
+            )}
+
+            {summary.installedCyclesPerSecond !== undefined && (
+                <span>
+                    Installed capacity:{' '}
+                    <strong>{formatDecimal(summary.installedCyclesPerSecond)} cycles/s</strong>
                 </span>
             )}
 
@@ -265,11 +298,11 @@ function PlannerPreviewMetrics({ summary }: PlannerPreviewMetricsProps) {
                         <strong>{formatNumber(summary.powerEstimate.recipeEuPerTick)} EU/t</strong>
                     </span>
                     <span>
-                        Average draw:{' '}
+                        Exact draw:{' '}
                         <strong>{formatDecimal(summary.powerEstimate.exactEuPerTick)} EU/t</strong>
                     </span>
                     <span>
-                        Installed draw:{' '}
+                        Build draw:{' '}
                         <strong>{formatNumber(summary.powerEstimate.roundedEuPerTick)} EU/t</strong>
                     </span>
                 </>
@@ -278,7 +311,7 @@ function PlannerPreviewMetrics({ summary }: PlannerPreviewMetricsProps) {
                     Power:{' '}
                     <strong>
                         {summary.usesEuPower
-                            ? 'Set a target rate to estimate EU/t'
+                            ? 'Unavailable'
                             : 'Not EU-powered / fuel-based'}
                     </strong>
                 </span>
@@ -293,8 +326,14 @@ interface PlannerGraphColumnProps {
     graph: VisualGraph
     nodes: VisualGraphNode[]
     stackRatesByNodeId: Map<string, PlannerStackRate>
+    solveMode: ConstraintSolveMode
     onFindProducers: (stack: ExportStack) => void
     onFindUses: (stack: ExportStack) => void
+    onStackConstraintRateChange: (
+        stackKey: StackKey,
+        role: PlannerStackConstraintRole,
+        ratePerSecond: number | undefined,
+    ) => void
 }
 
 function PlannerGraphColumn({
@@ -303,8 +342,10 @@ function PlannerGraphColumn({
     graph,
     nodes,
     stackRatesByNodeId,
+    solveMode,
     onFindProducers,
     onFindUses,
+    onStackConstraintRateChange,
 }: PlannerGraphColumnProps) {
     return (
         <div className="planner-graph-column">
@@ -318,8 +359,10 @@ function PlannerGraphColumn({
                             graph={graph}
                             node={node}
                             stackRate={stackRatesByNodeId.get(node.id)}
+                            solveMode={solveMode}
                             onFindProducers={onFindProducers}
                             onFindUses={onFindUses}
+                            onStackConstraintRateChange={onStackConstraintRateChange}
                         />
                     ))}
                 </div>
@@ -334,22 +377,34 @@ interface PlannerGraphNodeCardProps {
     graph: VisualGraph
     node: VisualGraphNode
     stackRate: PlannerStackRate | undefined
+    solveMode: ConstraintSolveMode
     onFindProducers: (stack: ExportStack) => void
     onFindUses: (stack: ExportStack) => void
+    onStackConstraintRateChange: (
+        stackKey: StackKey,
+        role: PlannerStackConstraintRole,
+        ratePerSecond: number | undefined,
+    ) => void
 }
 
 function PlannerGraphNodeCard({
     graph,
     node,
     stackRate,
+    solveMode,
     onFindProducers,
     onFindUses,
+    onStackConstraintRateChange,
 }: PlannerGraphNodeCardProps) {
     const relatedEdges = getRelatedEdges(graph, node)
     const stackAction = getStackAction(node, stackRate, onFindProducers, onFindUses)
     const isActionable = stackAction !== undefined
 
     function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+        if (event.target !== event.currentTarget) {
+            return
+        }
+
         if (!stackAction) {
             return
         }
@@ -363,6 +418,7 @@ function PlannerGraphNodeCard({
     const className = [
         'planner-graph-node',
         `planner-graph-node-${node.status ?? node.kind}`,
+        stackRate ? `planner-graph-node-rate-${stackRate.status}` : undefined,
         isActionable ? 'planner-graph-node-actionable' : undefined,
     ]
         .filter(Boolean)
@@ -379,7 +435,7 @@ function PlannerGraphNodeCard({
         >
             <div>
                 <span className="planner-graph-node-kind">
-                    {getNodeKindLabel(node)}
+                    {getNodeKindLabel(node, stackRate)}
                 </span>
                 <strong>{node.label}</strong>
             </div>
@@ -395,6 +451,18 @@ function PlannerGraphNodeCard({
                 </dl>
             )}
 
+            {stackRate && (
+                <PlannerStackRateSummary stackRate={stackRate} />
+            )}
+
+            {stackRate && (
+                <PlannerStackConstraintControl
+                    stackRate={stackRate}
+                    solveMode={solveMode}
+                    onStackConstraintRateChange={onStackConstraintRateChange}
+                />
+            )}
+
             {relatedEdges.length > 0 && (
                 <div className="planner-graph-edge-labels">
                     {relatedEdges.map((edge) => (
@@ -404,23 +472,157 @@ function PlannerGraphNodeCard({
             )}
 
             {stackAction && (
-                <div className="planner-graph-node-actions">
-                    <span
-                        aria-hidden={true}
-                        className="stack-action-button planner-graph-card-action-label"
+                <div
+                    className="planner-graph-node-actions"
+                    onClick={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                >
+                    <button
+                        className="stack-action-button"
+                        type="button"
+                        onClick={stackAction.onClick}
                     >
                         {stackAction.label}
-                    </span>
+                    </button>
                 </div>
             )}
         </article>
     )
 }
 
+interface PlannerStackRateSummaryProps {
+    stackRate: PlannerStackRate
+}
+
+function PlannerStackRateSummary({ stackRate }: PlannerStackRateSummaryProps) {
+    return (
+        <dl className="planner-graph-node-metrics planner-graph-rate-summary">
+            {stackRate.requiredRatePerSecond !== undefined && (
+                <div>
+                    <dt>Required / sec</dt>
+                    <dd>
+                        {formatDecimal(stackRate.requiredRatePerSecond)} {stackRate.stack.unit}/s
+                    </dd>
+                </div>
+            )}
+
+            {stackRate.producedRatePerSecond !== undefined && (
+                <div>
+                    <dt>Produced / sec</dt>
+                    <dd>
+                        {formatDecimal(stackRate.producedRatePerSecond)} {stackRate.stack.unit}/s
+                    </dd>
+                </div>
+            )}
+
+            {stackRate.constraintRatePerSecond !== undefined && (
+                <div>
+                    <dt>
+                        {stackRate.constraintRole === 'input-provided'
+                            ? 'Provided / sec'
+                            : 'Wanted / sec'}
+                    </dt>
+                    <dd>
+                        {formatDecimal(stackRate.constraintRatePerSecond)} {stackRate.stack.unit}/s
+                    </dd>
+                </div>
+            )}
+
+            {stackRate.excessRatePerSecond !== undefined && stackRate.excessRatePerSecond > 0 && (
+                <div>
+                    <dt>Excess / sec</dt>
+                    <dd>
+                        {formatDecimal(stackRate.excessRatePerSecond)} {stackRate.stack.unit}/s
+                    </dd>
+                </div>
+            )}
+
+            {stackRate.shortageRatePerSecond !== undefined && stackRate.shortageRatePerSecond > 0 && (
+                <div>
+                    <dt>Short / sec</dt>
+                    <dd>
+                        {formatDecimal(stackRate.shortageRatePerSecond)} {stackRate.stack.unit}/s
+                    </dd>
+                </div>
+            )}
+        </dl>
+    )
+}
+
+interface PlannerStackConstraintControlProps {
+    stackRate: PlannerStackRate
+    solveMode: ConstraintSolveMode
+    onStackConstraintRateChange: (
+        stackKey: StackKey,
+        role: PlannerStackConstraintRole,
+        ratePerSecond: number | undefined,
+    ) => void
+}
+
+function PlannerStackConstraintControl({ stackRate, solveMode, onStackConstraintRateChange }: PlannerStackConstraintControlProps) {
+    const [inputDraft, setInputDraft] = useState<string | undefined>()
+
+    const constraintRole: PlannerStackConstraintRole = stackRate.role === 'input' ? 'input-provided' : 'output-wanted'
+
+    const isActiveSolveMode = stackRate.role === 'input' ? solveMode === 'from-inputs' : solveMode === 'from-outputs'
+
+    const label = stackRate.role === 'input' ? 'Provided / sec' : 'Wanted / sec'
+    const currentValue = inputDraft ?? formatRateInputValue(stackRate.constraintRatePerSecond)
+
+    return (
+        <div
+            className="planner-graph-node-controls"
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+        >
+            <label className="planner-stack-rate-control">
+                <span>{label}</span>
+                <input
+                    min="0"
+                    step="0.001"
+                    type="number"
+                    value={currentValue}
+                    placeholder={
+                        isActiveSolveMode
+                            ? 'optional'
+                            : 'saved, but inactive in this solve mode'
+                    }
+                    onBlur={() => {
+                        const parsedValue = parseOptionalPositiveNumber(currentValue)
+
+                        setInputDraft(undefined)
+                        onStackConstraintRateChange(
+                            stackRate.stackKey,
+                            constraintRole,
+                            parsedValue,
+                        )
+                    }}
+                    onChange={(event) => {
+                        const rawValue = event.target.value.trim()
+                        const parsedValue = parseOptionalPositiveNumber(rawValue)
+
+                        setInputDraft(rawValue)
+                        onStackConstraintRateChange(
+                            stackRate.stackKey,
+                            constraintRole,
+                            parsedValue,
+                        )
+                    }}
+                />
+            </label>
+
+            <p className="planner-stack-constraint-hint">
+                Blank or 0 means ignored.{' '}
+                {!isActiveSolveMode && 'Switch solve mode or use this constraint.'}
+            </p>
+        </div>
+    )
+}
+
 function getStackRatesByNodeId(summary: PlannerPlanSummary): Map<string, PlannerStackRate> {
     const stackRatesByNodeId = new Map<string, PlannerStackRate>()
 
-    summary.unresolvedInputRates.forEach((rate, index) => {
+    summary.inputRates.forEach((rate, index) => {
         stackRatesByNodeId.set(`input:${rate.stackKey}:${index}`, rate)
     })
 
@@ -474,7 +676,23 @@ function getStackAction(
     return undefined
 }
 
-function getNodeKindLabel(node: VisualGraphNode): string {
+function getNodeKindLabel(node: VisualGraphNode, stackRate: PlannerStackRate | undefined): string {
+    if (stackRate?.status === 'limiting') {
+        return 'Limiting input'
+    }
+
+    if (stackRate?.status === 'short') {
+        return 'Short'
+    }
+
+    if (stackRate?.status === 'excess') {
+        return 'Excess'
+    }
+
+    if (stackRate?.status === 'satisfied') {
+        return 'Satisfied'
+    }
+
     switch (node.status) {
         case 'unresolved-input':
             return 'Input'
@@ -501,4 +719,32 @@ function formatMetricValue(value: number | string): string {
     }
 
     return value
+}
+
+function formatRateInputValue(value: number | undefined): string {
+    if (value === undefined) {
+        return ''
+    }
+
+    if (Number.isInteger(value)) {
+        return String(value)
+    }
+
+    return Number(value.toFixed(6)).toString()
+}
+
+function parseOptionalPositiveNumber(value: string): number | undefined {
+    const trimmedValue = value.trim()
+
+    if (!trimmedValue) {
+        return undefined
+    }
+
+    const parsedValue = Number(trimmedValue)
+
+    if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+        return undefined
+    }
+
+    return parsedValue
 }

@@ -56,6 +56,8 @@ export interface PlannerNode {
     status: PlannerNodeStatus
     label?: string
     notes?: string
+    quickPlanSettings?: PlannerNodeQuickPlanSettings
+    stackConstraints?: PlannerStackConstraint[]
 }
 
 export interface PlannerEdge {
@@ -99,6 +101,23 @@ export interface MachineConfig {
     enabledUpgrades?: string[]
 }
 
+export type MachineCountMode = 'auto' | 'fixed'
+export type ConstraintSolveMode = 'from-inputs' | 'from-outputs'
+export type PlannerStackConstraintRole = 'input-provided' | 'output-wanted'
+
+export interface PlannerNodeQuickPlanSettings {
+    machineCountMode: MachineCountMode
+    fixedMachineCount?: number
+    solveMode: ConstraintSolveMode
+    baseTimingOnly: true
+}
+
+export interface PlannerStackConstraint {
+    stackKey: StackKey
+    role: PlannerStackConstraintRole
+    ratePerSecond?: number
+}
+
 export const DEFAULT_PLANNER_ASSUMPTIONS: PlannerAssumptions = {
     targetMode: 'continuous',
     defaultRounding: 'exact',
@@ -107,6 +126,12 @@ export const DEFAULT_PLANNER_ASSUMPTIONS: PlannerAssumptions = {
     allowManualImports: true,
     allowVoids: true,
     allowByproductReuse: true,
+}
+
+export const DEFAULT_QUICK_PLAN_SETTINGS: PlannerNodeQuickPlanSettings = {
+    machineCountMode: 'auto',
+    solveMode: 'from-outputs',
+    baseTimingOnly: true,
 }
 
 export function createPlannerPlan(recipe: NormalizedExportRecipe): PlannerPlan {
@@ -136,9 +161,10 @@ export function createRecipePlannerNode(recipe: NormalizedExportRecipe): Planner
         kind: 'recipe',
         recipeId: recipe.id,
         targetOutputIndex,
-        targetRatePerSecond: getDefaultRecipeTargetRatePerSecond(recipe, targetOutputIndex),
         status: 'planned',
         label: recipe.outputs[0]?.displayName ?? recipe.machine.name,
+        quickPlanSettings: { ...DEFAULT_QUICK_PLAN_SETTINGS },
+        stackConstraints: [],
         machineConfig: {
             machineId: recipe.machine.id,
             machineKind: 'singleblock',

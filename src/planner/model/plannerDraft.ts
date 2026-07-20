@@ -1,6 +1,17 @@
 import type { NormalizedExportRecipe } from '../../lib/normalizeExport'
-import { createPlannerPlan, getDefaultRecipeTargetRatePerSecond } from './plannerPlan'
-import type { PlannerNode, PlannerPlan } from './plannerPlan'
+import {
+    createPlannerPlan,
+    DEFAULT_QUICK_PLAN_SETTINGS,
+    getDefaultRecipeTargetRatePerSecond,
+} from './plannerPlan'
+import type {
+    ConstraintSolveMode,
+    MachineCountMode,
+    PlannerNode,
+    PlannerPlan,
+    PlannerStackConstraintRole,
+    StackKey,
+} from './plannerPlan'
 
 export interface PlannerDraft {
     plan: PlannerPlan
@@ -112,4 +123,83 @@ function updatePlannerDraftRootNode(draft: PlannerDraft, updateRootNode: (rootNo
             },
         },
     }
+}
+
+export function setPlannerDraftMachineCountMode(draft: PlannerDraft, machineCountMode: MachineCountMode): PlannerDraft {
+    return updatePlannerDraftRootNode(draft, (rootNode) => ({
+        ...rootNode,
+        quickPlanSettings: {
+            ...DEFAULT_QUICK_PLAN_SETTINGS,
+            ...rootNode.quickPlanSettings,
+            machineCountMode,
+            fixedMachineCount:
+                machineCountMode === 'fixed'
+                    ? normalizePositiveMachineCount(
+                        rootNode.quickPlanSettings?.fixedMachineCount,
+                    ) ?? 1
+                    : rootNode.quickPlanSettings?.fixedMachineCount,
+        },
+    }))
+}
+
+export function setPlannerDraftFixedMachineCount(draft: PlannerDraft, fixedMachineCount: number | undefined): PlannerDraft {
+    return updatePlannerDraftRootNode(draft, (rootNode) => ({
+        ...rootNode,
+        quickPlanSettings: {
+            ...DEFAULT_QUICK_PLAN_SETTINGS,
+            ...rootNode.quickPlanSettings,
+            machineCountMode: 'fixed',
+            fixedMachineCount: normalizePositiveMachineCount(fixedMachineCount),
+        },
+    }))
+}
+
+export function setPlannerDraftConstraintSolveMode(draft: PlannerDraft, solveMode: ConstraintSolveMode): PlannerDraft {
+    return updatePlannerDraftRootNode(draft, (rootNode) => ({
+        ...rootNode,
+        quickPlanSettings: {
+            ...DEFAULT_QUICK_PLAN_SETTINGS,
+            ...rootNode.quickPlanSettings,
+            solveMode,
+        },
+    }))
+}
+
+export function setPlannerDraftStackConstraintRate(draft: PlannerDraft, stackKey: StackKey, role: PlannerStackConstraintRole, ratePerSecond: number | undefined): PlannerDraft {
+    return updatePlannerDraftRootNode(draft, (rootNode) => {
+        const normalizedRate = normalizePositiveNumber(ratePerSecond)
+        const existingConstraints = rootNode.stackConstraints ?? []
+        const nextConstraints = existingConstraints.filter(
+            (constraint) => !(constraint.stackKey === stackKey && constraint.role === role),
+        )
+
+        if (normalizedRate !== undefined) {
+            nextConstraints.push({
+                stackKey,
+                role,
+                ratePerSecond: normalizedRate,
+            })
+        }
+
+        return {
+            ...rootNode,
+            stackConstraints: nextConstraints,
+        }
+    })
+}
+
+function normalizePositiveNumber(value: number | undefined): number | undefined {
+    if (value === undefined || !Number.isFinite(value) || value <= 0) {
+        return undefined
+    }
+
+    return value
+}
+
+function normalizePositiveMachineCount(value: number | undefined): number | undefined {
+    if (value === undefined || !Number.isFinite(value) || value <= 0) {
+        return undefined
+    }
+
+    return Math.max(1, Math.floor(value))
 }

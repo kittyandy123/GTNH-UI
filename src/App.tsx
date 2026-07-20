@@ -20,10 +20,13 @@ import { RecipeResults } from './components/RecipeResults'
 import { buildOutputGroups } from './lib/outputGroups'
 import {
   createPlannerDraft,
-  getPlannerDraftRecipeId,
-  setPlannerDraftTargetOutputIndex,
-  setPlannerDraftTargetRatePerSecond,
-  type PlannerDraft,
+    getPlannerDraftRecipeId,
+    setPlannerDraftConstraintSolveMode,
+    setPlannerDraftFixedMachineCount,
+    setPlannerDraftMachineCountMode,
+    setPlannerDraftStackConstraintRate,
+    setPlannerDraftTargetOutputIndex,
+    type PlannerDraft,
 } from './planner/model/plannerDraft'
 import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
 import { PlannerGraphPreview } from './components/PlannerGraphPreview'
@@ -299,10 +302,36 @@ function App() {
                 draft={plannerDraft}
                 onSelectRecipe={() => focusRecipe(plannedRecipe.id)}
                 onClearPlan={() => setPlannerDraft(undefined)}
-                onTargetRateChange={(targetRatePerSecond) =>
+                onMachineCountModeChange={(machineCountMode) =>
                     setPlannerDraft((currentDraft) =>
                         currentDraft
-                            ? setPlannerDraftTargetRatePerSecond(currentDraft, targetRatePerSecond, plannedRecipe)
+                            ? setPlannerDraftMachineCountMode(currentDraft, machineCountMode)
+                            : undefined,
+                    )
+                }
+                onFixedMachineCountChange={(fixedMachineCount) =>
+                    setPlannerDraft((currentDraft) =>
+                        currentDraft
+                            ? setPlannerDraftFixedMachineCount(currentDraft, fixedMachineCount)
+                            : undefined,
+                    )
+                }
+                onConstraintSolveModeChange={(solveMode) =>
+                    setPlannerDraft((currentDraft) =>
+                        currentDraft
+                            ? setPlannerDraftConstraintSolveMode(currentDraft, solveMode)
+                            : undefined,
+                    )
+                }
+                onStackConstraintRateChange={(stackKey, role, ratePerSecond) =>
+                    setPlannerDraft((currentDraft) =>
+                        currentDraft
+                            ? setPlannerDraftStackConstraintRate(
+                                currentDraft,
+                                stackKey,
+                                role,
+                                ratePerSecond,
+                            )
                             : undefined,
                     )
                 }

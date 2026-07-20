@@ -12,7 +12,7 @@ export function buildVisualGraphFromPlanSummary(summary: PlannerPlanSummary): Vi
 
     nodes.push(createRecipeNode(summary))
 
-    summary.unresolvedInputRates.forEach((rate, index) => {
+    summary.inputRates.forEach((rate, index) => {
         const inputNode = createStackNode('input', rate, index, 'unresolved-input')
         nodes.push(inputNode)
 
@@ -22,7 +22,7 @@ export function buildVisualGraphFromPlanSummary(summary: PlannerPlanSummary): Vi
             to: summary.rootNodeId,
             stackKey: rate.stackKey,
             ratePerSecond: rate.ratePerSecond,
-            status: 'short',
+            status: getInputEdgeStatus(rate),
             label: formatRateLabel(rate),
         })
     })
@@ -37,7 +37,7 @@ export function buildVisualGraphFromPlanSummary(summary: PlannerPlanSummary): Vi
             to: outputNode.id,
             stackKey: rate.stackKey,
             ratePerSecond: rate.ratePerSecond,
-            status: 'satisfied',
+            status: getOutputEdgeStatus(rate),
             label: formatRateLabel(rate),
         })
     })
@@ -51,7 +51,7 @@ export function buildVisualGraphFromPlanSummary(summary: PlannerPlanSummary): Vi
             to: byproductNode.id,
             stackKey: rate.stackKey,
             ratePerSecond: rate.ratePerSecond,
-            status: 'excess',
+            status: getOutputEdgeStatus(rate),
             label: formatRateLabel(rate),
         })
     })
@@ -65,7 +65,10 @@ export function buildVisualGraphFromPlanSummary(summary: PlannerPlanSummary): Vi
 
 function createRecipeNode(summary: PlannerPlanSummary): VisualGraphNode {
     const machineSummary = summary.machineSummaries[0]
-    const metrics: Record<string, number | string> = {}
+    const metrics: Record<string, number | string> = {
+        machineCountMode: summary.machineCountMode === 'fixed' ? 'Fixed' : 'Auto',
+        solveMode: summary.solveMode === 'from-inputs' ? 'Inputs' : 'Outputs',
+    }
 
     if (summary.operationsPerSecond !== undefined) {
         metrics.operationsPerSecond = summary.operationsPerSecond
@@ -85,9 +88,13 @@ function createRecipeNode(summary: PlannerPlanSummary): VisualGraphNode {
 
     return {
         id: summary.rootNodeId,
-        label: summary.planName,
+        label:
+            summary.rootRecipe?.outputs[summary.targetOutputIndex]?.displayName ??
+            summary.rootRecipe?.outputs[0]?.displayName ??
+            machineSummary?.machineName ??
+            'Planned recipe',
         kind: 'recipe',
-        sourceId: summary.rootRecipeId,
+        sourceId: summary.rootRecipe?.id,
         status: 'recipe',
         metrics: {
             machine: machineSummary?.machineName ?? 'Unknown machine',
@@ -97,16 +104,31 @@ function createRecipeNode(summary: PlannerPlanSummary): VisualGraphNode {
 }
 
 function createStackNode(prefix: string, rate: PlannerStackRate, index: number, status: 'unresolved-input' | 'target-output' | 'byproduct'): VisualGraphNode {
+    const metrics: Record<string, number | string> = {
+        status: rate.status,
+        ratePerSecond: rate.ratePerSecond,
+        unit: `${rate.stack.unit}/s`,
+    }
+
+    if (rate.constraintRatePerSecond !== undefined) {
+        metrics.constraintRatePerSecond = rate.constraintRatePerSecond
+    }
+
+    if (rate.excessRatePerSecond !== undefined && rate.excessRatePerSecond > 0) {
+        metrics.excessPerSecond = rate.excessRatePerSecond
+    }
+
+    if (rate.shortageRatePerSecond !== undefined && rate.shortageRatePerSecond > 0) {
+        metrics.shortagePerSecond = rate.shortageRatePerSecond
+    }
+
     return {
         id: `${prefix}:${rate.stackKey}:${index}`,
         label: rate.stack.displayName,
         kind: 'resource',
         sourceId: rate.stackKey,
         status,
-        metrics: {
-            ratePerSecond: rate.ratePerSecond,
-            unit: `${rate.stack.unit}/s`,
-        },
+        metrics,
     }
 }
 
@@ -170,4 +192,28 @@ function roundRate(value: number): string {
     }
 
     return value.toFixed(3).replace(/\.?0+$/, '')
+}
+
+function getInputEdgeStatus(rate: PlannerStackRate): VisualGraphEdge['status'] {
+    if (rate.status === 'short' || rate.status === 'unresolved') {
+        return 'short'
+    }
+
+    if (rate.status === 'excess') {
+        return 'excess'
+    }
+
+    return 'satisfied'
+}
+
+function getOutputEdgeStatus(rate: PlannerStackRate): VisualGraphEdge['status'] {
+    if (rate.status === 'short') {
+        return 'short'
+    }
+
+    if (rate.status === 'excess' || rate.status === 'byproduct') {
+        return 'excess'
+    }
+
+    return 'satisfied'
 }

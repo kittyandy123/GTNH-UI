@@ -86,12 +86,12 @@ The application currently supports:
 - Capped result rendering for large catalogs.
 - Recipe input, tooling, output, chance, and metadata details.
 - Producer and consumer navigation.
-- Target-output selection.
-- Target-rate quick planning.
-- Exact and rounded machine-count estimates.
-- Input and output rate summaries.
-- Basic EU/t and power estimates.
-- A graph-backed planner model and preview.
+- Primary-output selection.
+- Constraint-driven quick planning from wanted output rates or provided input rates.
+- Automatic and fixed whole-machine count modes.
+- Required, produced, excess, shortage, and limiting-rate summaries.
+- Base-timing EU/t, power, and machine-capacity estimates.
+- A graph-backed single-recipe plan preview.
 
 ## Running locally
 
