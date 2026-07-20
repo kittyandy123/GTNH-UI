@@ -3,6 +3,11 @@ import type { ExportStack } from '../types/recipe'
 import type { RecipeCatalog } from './recipeCatalog'
 import { getStackKey } from './stackKey'
 
+export interface MachineRecipeCount {
+    machineId: string
+    count: number
+}
+
 export function getProducerRecipesForStack(catalog: RecipeCatalog, stack: ExportStack): readonly NormalizedExportRecipe[] {
     const recipeIds =
         catalog.producerRecipeIdsByStackKey.get(
@@ -19,6 +24,22 @@ export function getConsumerRecipesForStack(catalog: RecipeCatalog, stack: Export
         ) ?? []
 
     return resolveRecipes(catalog, recipeIds)
+}
+
+export function getRecipesForMachine(catalog: RecipeCatalog, machineId: string): readonly NormalizedExportRecipe[] {
+    const recipeIds = catalog.recipeIdsByMachine.get(machineId) ?? []
+
+    return resolveRecipes(catalog, recipeIds)
+}
+
+export function getMachineRecipeCounts(catalog: RecipeCatalog): readonly MachineRecipeCount[] {
+    return Array.from(
+        catalog.recipeIdsByMachine,
+        ([machineId, recipeIds]) => ({
+            machineId,
+            count: recipeIds.length,
+        }),
+    ).sort((a, b) => b.count - a.count)
 }
 
 function resolveRecipes(catalog: RecipeCatalog, recipeIds: readonly string[]): readonly NormalizedExportRecipe[] {

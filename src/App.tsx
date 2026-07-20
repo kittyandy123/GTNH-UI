@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { loadRecipeExport } from './lib/loadRecipes'
 import {
-  formatDate,
-  formatNumber,
-  formatExactStackSearchToken,
-  normalizeSearchText,
-  recipeMatchesQuery,
+    formatDate,
+    formatNumber,
+    formatExactStackSearchToken,
+    normalizeSearchText,
+    recipeMatchesQuery,
 } from './lib/recipeHelpers'
 import { normalizeExportDocument } from './lib/normalizeExport'
 import type { SearchMode } from './lib/recipeHelpers'
@@ -19,7 +19,7 @@ import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
 import { buildOutputGroups } from './lib/outputGroups'
 import {
-  createPlannerDraft,
+    createPlannerDraft,
     getPlannerDraftRecipeId,
     setPlannerDraftConstraintSolveMode,
     setPlannerDraftFixedMachineCount,
@@ -31,12 +31,14 @@ import {
 import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
 import { PlannerGraphPreview } from './components/PlannerGraphPreview'
 import {
-  buildRecipeCatalog,
-  type RecipeCatalog,
+    buildRecipeCatalog,
+    type RecipeCatalog,
 } from './catalog/recipeCatalog'
 import {
-  getConsumerRecipesForStack,
-  getProducerRecipesForStack,
+    getConsumerRecipesForStack,
+    getMachineRecipeCounts,
+    getProducerRecipesForStack,
+    getRecipesForMachine,
 } from './catalog/recipeCatalogQueries'
 
 const MAX_VISIBLE_RECIPES = 200
@@ -139,14 +141,14 @@ function App() {
           : undefined
 
   const machineCounts = useMemo(() => {
-    if (!exportDocument) {
+    if (!recipeCatalog) {
       return []
     }
 
-    return Object.entries(exportDocument.diagnostics.recipeCountsByMachine)
-        .map(([machineId, count]) => ({ machineId, count }))
-        .sort((a, b) => b.count - a.count)
-  }, [exportDocument])
+    return [
+        ...getMachineRecipeCounts(recipeCatalog),
+    ]
+  }, [recipeCatalog])
 
   const filteredRecipes = useMemo(() => {
     if (!exportDocument) {
@@ -170,17 +172,25 @@ function App() {
 
     const query = normalizeSearchText(searchText)
 
-    return exportDocument.recipes.filter((recipe) => {
-      if (selectedMachineId && recipe.machine.id !== selectedMachineId) {
-        return false
-      }
+    const candidateRecipes =
+        recipeCatalog && selectedMachineId
+            ? getRecipesForMachine(
+                recipeCatalog,
+                selectedMachineId,
+            )
+            : exportDocument.recipes
 
-      if (!query) {
-        return true
-      }
+    if (!query) {
+      return [...candidateRecipes]
+    }
 
-      return recipeMatchesQuery(recipe, query, searchMode)
-    })
+    return candidateRecipes.filter((recipe) =>
+        recipeMatchesQuery(
+            recipe,
+            query,
+            searchMode,
+        ),
+    )
   }, [
     exportDocument,
     recipeCatalog,
