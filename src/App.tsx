@@ -30,6 +30,10 @@ import {
 } from './planner/model/plannerDraft'
 import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
 import { PlannerGraphPreview } from './components/PlannerGraphPreview'
+import {
+  buildRecipeCatalog,
+  type RecipeCatalog,
+} from './catalog/recipeCatalog'
 
 const MAX_VISIBLE_RECIPES = 200
 
@@ -48,7 +52,11 @@ const RESULT_VIEW_OPTIONS: { value: ResultViewMode; label: string }[] = [
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'loaded'; data: NormalizedExportDocument }
+  | {
+        status: 'loaded'
+        data: NormalizedExportDocument
+        catalog: RecipeCatalog
+    }
   | { status: 'error'; message: string }
 
 interface PlannerNavigationContext {
@@ -78,9 +86,14 @@ function App() {
       try {
         const rawData = await loadRecipeExport()
         const data = normalizeExportDocument(rawData)
+        const catalog = buildRecipeCatalog(data)
 
         if (!cancelled) {
-          setLoadState({ status: 'loaded', data })
+          setLoadState({
+            status: 'loaded',
+            data,
+            catalog,
+          })
         }
       } catch (error) {
         if (!cancelled) {
@@ -102,7 +115,15 @@ function App() {
     }
   }, [])
 
-  const exportDocument = loadState.status === 'loaded' ? loadState.data : undefined
+  const exportDocument =
+      loadState.status === 'loaded'
+          ? loadState.data
+          : undefined
+
+  const recipeCatalog =
+      loadState.status === 'loaded'
+          ? loadState.catalog
+          : undefined
 
   const machineCounts = useMemo(() => {
     if (!exportDocument) {
@@ -153,21 +174,13 @@ function App() {
 
   const visibleOutputGroupRecipes = selectedOutputGroup?.recipes.slice(0, MAX_VISIBLE_RECIPES) ?? []
 
-  const selectedRecipe = useMemo(() => {
-    if (!exportDocument || !selectedRecipeId) {
-      return undefined
-    }
+  const selectedRecipe = selectedRecipeId
+      ? recipeCatalog?.recipesById.get(selectedRecipeId)
+      : undefined
 
-    return exportDocument.recipes.find((recipe) => recipe.id === selectedRecipeId)
-  }, [exportDocument, selectedRecipeId])
-
-  const plannedRecipe = useMemo(() => {
-    if (!exportDocument || !plannedRecipeId) {
-      return undefined
-    }
-
-    return exportDocument.recipes.find((recipe) => recipe.id === plannedRecipeId)
-  }, [exportDocument, plannedRecipeId])
+  const plannedRecipe = plannedRecipeId
+      ? recipeCatalog?.recipesById.get(plannedRecipeId)
+      : undefined
 
   function selectMachine(machineId: string | undefined) {
     setSelectedMachineId(machineId)
