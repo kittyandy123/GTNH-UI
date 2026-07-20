@@ -26,6 +26,11 @@
     "sampleToolInputs": [
       "gregtech:mixer: Plate Mold [gregtech:shape_mold_plate:0]"
     ],
+    "nonPlannableRecipes": 0,
+    "nonPlannableRecipesByMachine": {},
+    "nonPositiveDurationRecipes": 0,
+    "suspectedDurationOverflowRecipes": 0,
+    "sampleNonPlannableRecipes": [],
     "recipeCountsByMachine": {
       "gregtech:mixer": 1
     }

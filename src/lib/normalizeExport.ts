@@ -1,4 +1,11 @@
-import type { ExportDocument, ExportRecipe, ExportStack } from '../types/recipe'
+import type {
+    ExportDiagnostics,
+    ExportDocument,
+    ExportRecipe,
+    ExportStack,
+    RecipePlanningInfo,
+    RecipePlanningIssue,
+} from '../types/recipe'
 
 export interface NormalizedExportDocument extends Omit<ExportDocument, 'recipes'> {
     recipes: NormalizedExportRecipe[]
@@ -9,10 +16,17 @@ export interface NormalizedExportRecipe extends Omit<ExportRecipe, 'tools'> {
 }
 
 export function normalizeExportDocument(document: ExportDocument): NormalizedExportDocument {
+    const recipes = document.recipes.map((recipe) =>
+        normalizedRecipe(recipe, document.schemaVersion),
+    )
+
     return {
         ...document,
-        recipes: document.recipes.map((recipe) =>
-        normalizedRecipe(recipe, document.schemaVersion))
+        diagnostics: normalizePlanningDiagnostics(
+            document.diagnostics,
+            recipes,
+        ),
+        recipes,
     }
 }
 
@@ -21,6 +35,7 @@ function normalizedRecipe(recipe: ExportRecipe, schemaVersion: number): Normaliz
         return {
             ...recipe,
             tools: recipe.tools ?? [],
+            planning: normalizeRecipePlanning(recipe),
         }
     }
 
@@ -42,6 +57,84 @@ function normalizedRecipe(recipe: ExportRecipe, schemaVersion: number): Normaliz
         ...recipe,
         inputs,
         tools: [...tools, ...(recipe.tools ?? [])],
+        planning: normalizeRecipePlanning(recipe),
+    }
+}
+
+function normalizeRecipePlanning(recipe: ExportRecipe): RecipePlanningInfo | undefined {
+    const issues = new Set<RecipePlanningIssue>(
+        recipe.planning?.issues ?? [],
+    )
+
+    if (recipe.durationTicks < 0 || recipe.durationSeconds < 0) {
+        issues.add('negative-duration')
+
+        if (recipe.durationTicks < 0) {
+            issues.add('duration-overflow-suspected')
+        }
+    } else if (recipe.durationTicks === 0 || recipe.durationSeconds === 0) {
+        issues.add('zero-duration')
+    }
+
+    if (issues.size === 0) {
+        return undefined
+    }
+
+    return {
+        supported: false,
+        issues: [...issues],
+    }
+}
+
+function normalizePlanningDiagnostics(diagnostics: ExportDiagnostics, recipes: NormalizedExportRecipe[]): ExportDiagnostics {
+    const nonPlannableRecipes = recipes.filter(
+        (recipe) => recipe.planning?.supported === false,
+    )
+
+    const nonPlannableRecipesByMachine =
+        nonPlannableRecipes.reduce<Record<string, number>>(
+            (counts, recipe) => {
+                counts[recipe.machine.id] =
+                    (counts[recipe.machine.id] ?? 0) + 1
+
+                return counts
+            },
+            {},
+        )
+
+    const nonPositiveDurationRecipes =
+        nonPlannableRecipes.filter(
+            (recipe) =>
+                recipe.durationTicks <= 0 ||
+                recipe.durationSeconds <= 0,
+        ).length
+
+    const suspectedDurationOverflowRecipes =
+        nonPlannableRecipes.filter((recipe) =>
+            recipe.planning?.issues.includes(
+                'duration-overflow-suspected',
+            ),
+        ).length
+
+    const sampleNonPlannableRecipes =
+        nonPlannableRecipes.slice(0, 25).map((recipe) => {
+            const issues =
+                recipe.planning?.issues.join(', ') ?? ''
+
+            return (
+                `${recipe.machine.id}: ${recipe.id} ` +
+                `[ticks=${recipe.durationTicks}, ` +
+                `issues=[${issues}]]`
+            )
+        })
+
+    return {
+        ...diagnostics,
+        nonPlannableRecipes: nonPlannableRecipes.length,
+        nonPlannableRecipesByMachine,
+        nonPositiveDurationRecipes,
+        suspectedDurationOverflowRecipes,
+        sampleNonPlannableRecipes,
     }
 }
 

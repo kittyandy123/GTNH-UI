@@ -11,6 +11,13 @@ interface RecipeDetailsProps {
 }
 
 export function RecipeDetails({ recipe, onFindProducers, onFindUses, onPlanRecipe, isPlanned }: RecipeDetailsProps) {
+    const planningUnsupported = recipe.planning?.supported === false
+
+    const rateDurationSeconds =
+        !planningUnsupported && recipe.durationSeconds > 0
+            ? recipe.durationSeconds
+            : undefined
+
     return (
         <article className="recipe-detail-card">
             <div className="recipe-detail-header">
@@ -23,10 +30,30 @@ export function RecipeDetails({ recipe, onFindProducers, onFindUses, onPlanRecip
                     className={isPlanned ? 'primary-action-button active' : 'primary-action-button'}
                     type="button"
                     onClick={onPlanRecipe}
+                    disabled={planningUnsupported}
+                    title={
+                        planningUnsupported
+                            ? 'This recipe cannot be used in planning because its timing is invalid.'
+                            : undefined
+                    }
                 >
-                    {isPlanned ? 'Planned' : 'Plan this recipe'}
+                    {planningUnsupported
+                        ? 'Planning unavailable'
+                        : isPlanned
+                            ? 'Planned'
+                            : 'Plan this recipe'}
                 </button>
             </div>
+
+            {planningUnsupported && (
+                <section
+                    className="recipe-planning-warning"
+                    role="status"
+                >
+                    <strong>Planning unavailable</strong>
+                    <p>{getPlanningWarning(recipe)}</p>
+                </section>
+            )}
 
             <dl className="recipe-stat-grid">
                 <div>
@@ -51,7 +78,7 @@ export function RecipeDetails({ recipe, onFindProducers, onFindUses, onPlanRecip
                 <h4>Inputs</h4>
                 <StackList
                     stacks={recipe.inputs}
-                    durationSeconds={recipe.durationSeconds}
+                    durationSeconds={rateDurationSeconds}
                     actionLabel="Find producers"
                     onStackAction={onFindProducers}
                     rateMode="rate"
@@ -74,7 +101,7 @@ export function RecipeDetails({ recipe, onFindProducers, onFindUses, onPlanRecip
                 <h4>Outputs</h4>
                 <StackList
                     stacks={recipe.outputs}
-                    durationSeconds={recipe.durationSeconds}
+                    durationSeconds={rateDurationSeconds}
                     actionLabel="Find uses"
                     onStackAction={onFindUses}
                     rateMode="rate"
@@ -91,6 +118,34 @@ export function RecipeDetails({ recipe, onFindProducers, onFindUses, onPlanRecip
                 <code className="recipe-id">{recipe.id}</code>
             </section>
         </article>
+    )
+}
+
+function getPlanningWarning(recipe: NormalizedExportRecipe): string {
+    const issues = recipe.planning?.issues ?? []
+
+    if (issues.includes('duration-overflow-suspected')) {
+        return (
+            'The exported duration appears to contain ' +
+                'signed integer overflow. The recipe remains ' +
+                'available for browsing, but rates and machine ' +
+                'counts cannot be calculated safely.'
+        )
+    }
+
+    if (issues.includes('zero-duration')) {
+        return (
+            'The exported recipe has a zero duration. ' +
+                'The recipe remains available for browsing, ' +
+                'but the rates and machine counts cannot be ' +
+                'calculated safely.'
+        )
+    }
+
+    return (
+        'The exported recipe has invalid timing data. ' +
+            'The recipe remains available for browsing, but ' +
+            'rates and machine counts cannot be calculated safely.'
     )
 }
 
@@ -119,9 +174,11 @@ function StackList({ stacks, durationSeconds, actionLabel, onStackAction, rateMo
                     <div className="stack-rate-block">
                         <span>{formatStackAmount(stack)}</span>
                         <em>
-                            {rateMode === 'rate' && durationSeconds !== undefined
-                              ? formatStackRate(stack, durationSeconds)
-                              : 'Not consumed'}
+                            {rateMode === 'required'
+                                ? 'Not consumed'
+                                : durationSeconds !== undefined
+                                    ? formatStackRate(stack, durationSeconds)
+                                    : 'Rate unavailable'}
                         </em>
                         <button
                             className="stack-action-button"
