@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import representativeExport from '../test/fixtures/schema-v2-representative.json'
-import type { ExportDocument } from '../types/recipe'
-import { normalizeExportDocument } from '../lib/normalizeExport'
-import { buildRecipeCatalog } from './recipeCatalog'
+import type {
+    ExportDocument
+} from '../types/recipe'
+import {
+    normalizeExportDocument
+} from '../lib/normalizeExport'
+import {
+    buildRecipeCatalog
+} from './recipeCatalog'
 import {
     getConsumerRecipesForStack,
     getMachineRecipeCounts,
     getProducerRecipesForStack,
     getRecipesForMachine,
+    searchRecipes,
 } from './recipeCatalogQueries'
 
 function createDocument() {
@@ -170,5 +177,71 @@ describe('recipe catalog machine queries', () => {
                 count: 1,
             },
         ])
+    })
+})
+
+describe('recipe catalog search queries', () => {
+    it('searches only the supplied candidate recipes', () => {
+        const document = createDocument()
+        const recipe = document.recipes[0]
+
+        const secondRecipe = {
+            ...recipe,
+            id: `${recipe.id}:second`,
+            outputs: recipe.outputs.map(
+                (output, index) =>
+                    index === 0
+                        ? {
+                            ...output,
+                            id: 'lava',
+                            displayName: 'Lava',
+                        }
+                        : output,
+            ),
+        }
+
+        document.recipes.push(secondRecipe)
+
+        const catalog = buildRecipeCatalog(document)
+
+        expect(
+            searchRecipes(
+                catalog,
+                document.recipes,
+                'lava',
+                'outputs',
+            ),
+        ).toEqual([secondRecipe])
+
+        expect(
+            searchRecipes(
+                catalog,
+                [recipe],
+                'lava',
+                'outputs',
+            ),
+        ).toEqual([])
+    })
+
+    it('rejects candidates without search records', () => {
+        const document = createDocument()
+        const recipe = document.recipes[0]
+        const catalog = buildRecipeCatalog(document)
+
+        const brokenCatalog = {
+            ...catalog,
+            searchRecordsByRecipeId: new Map(),
+        }
+
+        expect(() =>
+            searchRecipes(
+                brokenCatalog,
+                [recipe],
+                'clay',
+                'inputs',
+            ),
+        ).toThrow(
+            `Catalog is missing search record for recipe: ${recipe.id}`,
+        )
     })
 })

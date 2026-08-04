@@ -2,7 +2,7 @@ import type { ExportRecipe, ExportStack } from '../types/recipe'
 
 export type SearchMode = 'all' | 'inputs' | 'outputs' | 'machines' | 'ids'
 
-interface ParsedSearchQuery {
+export interface ParsedSearchQuery {
     text: string
     isExact: boolean
 }
@@ -21,7 +21,7 @@ export function recipeMatchesQuery(recipe: ExportRecipe, query: string, mode: Se
     return recipeMatchesFuzzyQuery(recipe, parsedQuery.text, mode)
 }
 
-function parseSearchQuery(query: string): ParsedSearchQuery {
+export function parseSearchQuery(query: string): ParsedSearchQuery {
     const trimmedQuery = query.trim()
 
     if (!trimmedQuery) {

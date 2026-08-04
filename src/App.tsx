@@ -1,23 +1,44 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { loadRecipeExport } from './lib/loadRecipes'
+import {
+    loadRecipeExport,
+} from './lib/loadRecipes'
 import {
     formatDate,
     formatNumber,
     formatExactStackSearchToken,
     normalizeSearchText,
-    recipeMatchesQuery,
 } from './lib/recipeHelpers'
-import { normalizeExportDocument } from './lib/normalizeExport'
-import type { SearchMode } from './lib/recipeHelpers'
-import type { ExportStack } from './types/recipe'
-import type { NormalizedExportDocument } from './lib/normalizeExport'
-import type { ResultViewMode } from './types/recipeBrowser'
-import { RecipeDetails } from './components/RecipeDetails'
-import { DiagnosticsGrid } from './components/DiagnosticsGrid'
-import { MachineSidebar } from './components/MachineSidebar'
-import { RecipeResults } from './components/RecipeResults'
-import { buildOutputGroups } from './lib/outputGroups'
+import {
+    normalizeExportDocument,
+} from './lib/normalizeExport'
+import {
+    type SearchMode,
+} from './lib/recipeHelpers'
+import {
+    type ExportStack,
+} from './types/recipe'
+import {
+    type NormalizedExportDocument,
+} from './lib/normalizeExport'
+import {
+    type ResultViewMode,
+} from './types/recipeBrowser'
+import {
+    RecipeDetails,
+} from './components/RecipeDetails'
+import {
+    DiagnosticsGrid,
+} from './components/DiagnosticsGrid'
+import {
+    MachineSidebar,
+} from './components/MachineSidebar'
+import {
+    RecipeResults,
+} from './components/RecipeResults'
+import {
+    buildOutputGroups,
+} from './lib/outputGroups'
 import {
     createPlannerDraft,
     getPlannerDraftRecipeId,
@@ -28,8 +49,13 @@ import {
     setPlannerDraftTargetOutputIndex,
     type PlannerDraft,
 } from './planner/model/plannerDraft'
-import { PlannerNavigationNotice, type PlannerNavigationPurpose } from './components/PlannerNavigationNotice'
-import { PlannerGraphPreview } from './components/PlannerGraphPreview'
+import {
+    PlannerNavigationNotice,
+    type PlannerNavigationPurpose,
+} from './components/PlannerNavigationNotice'
+import {
+    PlannerGraphPreview,
+} from './components/PlannerGraphPreview'
 import {
     buildRecipeCatalog,
     type RecipeCatalog,
@@ -39,6 +65,7 @@ import {
     getMachineRecipeCounts,
     getProducerRecipesForStack,
     getRecipesForMachine,
+    searchRecipes,
 } from './catalog/recipeCatalogQueries'
 
 const MAX_VISIBLE_RECIPES = 200
@@ -150,55 +177,55 @@ function App() {
     ]
   }, [recipeCatalog])
 
-  const filteredRecipes = useMemo(() => {
-    if (!exportDocument) {
-      return []
-    }
+    const filteredRecipes = useMemo(() => {
+        if (!exportDocument || !recipeCatalog) {
+            return []
+        }
 
-    if (recipeCatalog && stackNavigationQuery) {
-      const indexedRecipes =
-          stackNavigationQuery.mode === 'outputs'
-              ? getProducerRecipesForStack(
-                  recipeCatalog,
-                  stackNavigationQuery.stack,
-              )
-              : getConsumerRecipesForStack(
-                  recipeCatalog,
-                  stackNavigationQuery.stack,
-              )
+        if (stackNavigationQuery) {
+            const indexedRecipes =
+                stackNavigationQuery.mode === 'outputs'
+                    ? getProducerRecipesForStack(
+                        recipeCatalog,
+                        stackNavigationQuery.stack,
+                    )
+                    : getConsumerRecipesForStack(
+                        recipeCatalog,
+                        stackNavigationQuery.stack,
+                    )
 
-      return [...indexedRecipes]
-    }
+            return [...indexedRecipes]
+        }
 
-    const query = normalizeSearchText(searchText)
+        const query = normalizeSearchText(searchText)
 
-    const candidateRecipes =
-        recipeCatalog && selectedMachineId
+        const candidateRecipes = selectedMachineId
             ? getRecipesForMachine(
                 recipeCatalog,
                 selectedMachineId,
             )
             : exportDocument.recipes
 
-    if (!query) {
-      return [...candidateRecipes]
-    }
+        if (!query) {
+            return [...candidateRecipes]
+        }
 
-    return candidateRecipes.filter((recipe) =>
-        recipeMatchesQuery(
-            recipe,
-            query,
-            searchMode,
-        ),
-    )
-  }, [
-    exportDocument,
-    recipeCatalog,
-    stackNavigationQuery,
-    searchText,
-    searchMode,
-    selectedMachineId
-  ])
+        return [
+            ...searchRecipes(
+                recipeCatalog,
+                candidateRecipes,
+                query,
+                searchMode,
+            ),
+        ]
+    }, [
+        exportDocument,
+        recipeCatalog,
+        stackNavigationQuery,
+        searchText,
+        searchMode,
+        selectedMachineId,
+    ])
 
   const visibleRecipes = filteredRecipes.slice(0, MAX_VISIBLE_RECIPES)
 

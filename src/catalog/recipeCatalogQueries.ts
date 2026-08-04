@@ -1,7 +1,21 @@
-import type { NormalizedExportRecipe } from '../lib/normalizeExport'
-import type { ExportStack } from '../types/recipe'
-import type { RecipeCatalog } from './recipeCatalog'
-import { getStackKey } from './stackKey'
+import type {
+    NormalizedExportRecipe
+} from '../lib/normalizeExport'
+import type {
+    SearchMode,
+} from '../lib/recipeHelpers'
+import {
+    recipeSearchRecordMatchesQuery
+} from './recipeSearchRecord'
+import type {
+    ExportStack
+} from '../types/recipe'
+import type {
+    RecipeCatalog
+} from './recipeCatalog'
+import {
+    getStackKey
+} from './stackKey'
 
 export interface MachineRecipeCount {
     machineId: string
@@ -40,6 +54,32 @@ export function getMachineRecipeCounts(catalog: RecipeCatalog): readonly Machine
             count: recipeIds.length,
         }),
     ).sort((a, b) => b.count - a.count)
+}
+
+export function searchRecipes(
+    catalog: RecipeCatalog,
+    recipes: readonly NormalizedExportRecipe[],
+    normalizedQuery: string,
+    mode: SearchMode,
+): readonly NormalizedExportRecipe[] {
+    return recipes.filter((recipe) => {
+        const searchRecord =
+            catalog.searchRecordsByRecipeId.get(
+                recipe.id,
+            )
+
+        if (!searchRecord) {
+            throw new Error(
+                `Catalog is missing search record for recipe: ${recipe.id}`,
+            )
+        }
+
+        return recipeSearchRecordMatchesQuery(
+            searchRecord,
+            normalizedQuery,
+            mode,
+        )
+    })
 }
 
 function resolveRecipes(catalog: RecipeCatalog, recipeIds: readonly string[]): readonly NormalizedExportRecipe[] {
