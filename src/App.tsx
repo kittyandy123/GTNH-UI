@@ -18,6 +18,7 @@ import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
 import { ExportFilePicker } from './components/ExportFilePicker'
 import { WorkspaceTabBar } from './components/WorkspaceTabBar'
+import { WorkspaceNameDialog } from './components/WorkspaceNameDialog'
 import {
   activatePlannerWindow,
   activateRecipeBrowser,
@@ -25,6 +26,7 @@ import {
   closePlannerWindow,
   createWorkspaceRegistry,
   getActivePlannerWindow,
+  renamePlannerWindow,
   updatePlannerWindowPlan,
 } from './app/model/workspaceRegistry'
 import { buildOutputGroups } from './lib/outputGroups'
@@ -87,6 +89,17 @@ type ExportFileLoadState =
       message: string
     }
 
+type WorkspaceNameDialogState =
+  | {
+      mode: 'create'
+      initialName: string
+    }
+  | {
+      mode: 'rename'
+      plannerWindowId: string
+      initialName: string
+    }
+
 type StackNavigationMode = Extract<SearchMode, 'inputs' | 'outputs'>
 
 interface StackNavigationQuery {
@@ -121,6 +134,9 @@ function App() {
     status: 'idle',
   })
   const [workspaceRegistry, setWorkspaceRegistry] = useState(createWorkspaceRegistry)
+  const [workspaceNameDialogState, setWorkspaceNameDialogState] = useState<
+    WorkspaceNameDialogState | undefined
+  >()
   const [searchText, setSearchText] = useState('')
   const [searchMode, setSearchMode] = useState<SearchMode>('all')
   const [resultViewMode, setResultViewMode] = useState<ResultViewMode>('exact')
@@ -260,6 +276,7 @@ function App() {
     setPlannerDraft(undefined)
     setPlannerNavigationContext(undefined)
     setWorkspaceRegistry(createWorkspaceRegistry())
+    setWorkspaceNameDialogState(undefined)
   }
 
   async function loadSelectedExportFile(file: File) {
@@ -293,14 +310,56 @@ function App() {
       return
     }
 
-    setWorkspaceRegistry((currentRegistry) =>
-      addPlannerWindow(currentRegistry, {
-        id: `planner-window:${crypto.randomUUID()}`,
-        name: plannerDraft.plan.name,
-        plan: plannerDraft.plan,
-        timestamp: new Date().toISOString(),
-      }),
-    )
+    setWorkspaceNameDialogState({
+      mode: 'create',
+      initialName: plannerDraft.plan.name,
+    })
+  }
+
+  function openRenamePlannerWorkspace(plannerWindowId: string) {
+    const plannerWindow = workspaceRegistry.plannerWindowsById[plannerWindowId]
+
+    if (!plannerWindow) {
+      return
+    }
+
+    setWorkspaceNameDialogState({
+      mode: 'rename',
+      plannerWindowId,
+      initialName: plannerWindow.plan.name,
+    })
+  }
+
+  function submitWorkspaceName(name: string) {
+    const dialogState = workspaceNameDialogState
+
+    if (!dialogState) {
+      return
+    }
+
+    const timestamp = new Date().toISOString()
+
+    if (dialogState.mode === 'create') {
+      if (!plannerDraft) {
+        setWorkspaceNameDialogState(undefined)
+        return
+      }
+
+      setWorkspaceRegistry((currentRegistry) =>
+        addPlannerWindow(currentRegistry, {
+          id: `planner-window:${crypto.randomUUID()}`,
+          name,
+          plan: plannerDraft.plan,
+          timestamp,
+        }),
+      )
+    } else {
+      setWorkspaceRegistry((currentRegistry) =>
+        renamePlannerWindow(currentRegistry, dialogState.plannerWindowId, name, timestamp),
+      )
+    }
+
+    setWorkspaceNameDialogState(undefined)
   }
 
   function updateActivePlannerDraft(updateDraft: (draft: PlannerDraft) => PlannerDraft) {
@@ -322,6 +381,17 @@ function App() {
         new Date().toISOString(),
       )
     })
+  }
+
+  function closePlannerWorkspace(plannerWindowId: string) {
+    setWorkspaceRegistry((currentRegistry) => closePlannerWindow(currentRegistry, plannerWindowId))
+
+    setWorkspaceNameDialogState((currentDialogState) =>
+      currentDialogState?.mode === 'rename' &&
+      currentDialogState.plannerWindowId === plannerWindowId
+        ? undefined
+        : currentDialogState,
+    )
   }
 
   function selectMachine(machineId: string | undefined) {
@@ -404,12 +474,23 @@ function App() {
             activatePlannerWindow(currentRegistry, plannerWindowId),
           )
         }
-        onClosePlannerWindow={(plannerWindowId) =>
-          setWorkspaceRegistry((currentRegistry) =>
-            closePlannerWindow(currentRegistry, plannerWindowId),
-          )
-        }
+        onRenamePlannerWindow={openRenamePlannerWorkspace}
+        onClosePlannerWindow={closePlannerWorkspace}
       />
+
+      {workspaceNameDialogState && (
+        <WorkspaceNameDialog
+          key={
+            workspaceNameDialogState.mode === 'create'
+              ? 'create-workspace'
+              : workspaceNameDialogState.plannerWindowId
+          }
+          mode={workspaceNameDialogState.mode}
+          initialName={workspaceNameDialogState.initialName}
+          onCancel={() => setWorkspaceNameDialogState(undefined)}
+          onSubmit={submitWorkspaceName}
+        />
+      )}
 
       {recipeBrowserIsActive && loadState.status === 'loaded' && (
         <DiagnosticsGrid diagnostics={loadState.data.diagnostics} />
@@ -591,11 +672,7 @@ function App() {
               setPlannerDraft(activePlannerDraft)
               focusRecipe(activePlannerRecipe.id)
             }}
-            onClearPlan={() =>
-              setWorkspaceRegistry((currentRegistry) =>
-                closePlannerWindow(currentRegistry, activePlannerWindow.id),
-              )
-            }
+            onClearPlan={() => closePlannerWorkspace(activePlannerWindow.id)}
             onMachineCountModeChange={(machineCountMode) =>
               updateActivePlannerDraft((currentDraft) =>
                 setPlannerDraftMachineCountMode(currentDraft, machineCountMode),

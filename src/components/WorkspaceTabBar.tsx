@@ -4,6 +4,7 @@ interface WorkspaceTabBarProps {
   registry: WorkspaceRegistry
   onActivateRecipeBrowser: () => void
   onActivatePlannerWindow: (plannerWindowId: string) => void
+  onRenamePlannerWindow: (plannerWindowId: string) => void
   onClosePlannerWindow: (plannerWindowId: string) => void
 }
 
@@ -11,6 +12,7 @@ export function WorkspaceTabBar({
   registry,
   onActivateRecipeBrowser,
   onActivatePlannerWindow,
+  onRenamePlannerWindow,
   onClosePlannerWindow,
 }: WorkspaceTabBarProps) {
   const recipeBrowserIsActive = registry.activeWorkspace.kind === 'recipe-browser'
@@ -52,6 +54,16 @@ export function WorkspaceTabBar({
               onClick={() => onActivatePlannerWindow(plannerWindow.id)}
             >
               {plannerWindow.plan.name}
+            </button>
+
+            <button
+              className="workspace-tab-rename"
+              type="button"
+              aria-label={`Rename ${plannerWindow.plan.name}`}
+              title={`Rename ${plannerWindow.plan.name}`}
+              onClick={() => onRenamePlannerWindow(plannerWindow.id)}
+            >
+              Rename
             </button>
 
             <button
