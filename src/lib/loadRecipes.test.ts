@@ -1,12 +1,6 @@
-import {
-  describe,
-  expect,
-  it,
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 import representativeExport from '../test/fixtures/schema-v2-representative.json'
-import {
-  parseRecipeExportText,
-} from './loadRecipes'
+import { parseRecipeExportText } from './loadRecipes'
 
 describe('parseRecipeExportText', () => {
   it('parses and validates a schema-v2 export', () => {
@@ -15,18 +9,11 @@ describe('parseRecipeExportText', () => {
       'representative.json',
     )
 
-    expect(result).toEqual(
-      representativeExport,
-    )
+    expect(result).toEqual(representativeExport)
   })
 
   it('reports invalid JSON with its source label', () => {
-    expect(() =>
-      parseRecipeExportText(
-        '{"schemaVersion":',
-        'broken.json',
-      ),
-    ).toThrow(
+    expect(() => parseRecipeExportText('{"schemaVersion":', 'broken.json')).toThrow(
       'Failed to parse broken.json as JSON:',
     )
   })
@@ -38,14 +25,7 @@ describe('parseRecipeExportText', () => {
     }
 
     expect(() =>
-      parseRecipeExportText(
-        JSON.stringify(
-          unsupportedExport,
-        ),
-        'unsupported.json',
-      ),
-    ).toThrow(
-      'Unsupported recipe export schema version: 3.',
-    )
+      parseRecipeExportText(JSON.stringify(unsupportedExport), 'unsupported.json'),
+    ).toThrow('Unsupported recipe export schema version: 3.')
   })
 })

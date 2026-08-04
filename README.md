@@ -57,11 +57,13 @@ schemaVersion: 2
 Documents are validated at the loading boundary before normalization or planner logic runs.
 
 Validation uses the exporter's Draft 2020-12 JSON Schema:
+
 ```text
 src/contracts/recipes-v2.schema.json
 ```
 
 The representative compatibility fixture is stored at:
+
 ```text
 src/test/fixtures/schema-v2-representative.json
 ```
@@ -69,6 +71,7 @@ src/test/fixtures/schema-v2-representative.json
 The authoritative schema and fixture remain in the exporter repository. The copies in this repository must be updated together whenever the exporter contract changes.
 
 Synchronization details and the current exporter baseline are recorded in:
+
 ```text
 src/contracts/README.md
 ```
@@ -96,17 +99,21 @@ The application currently supports:
 ## Running locally
 
 ### 1. Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 2. Provide recipe data
+
 Generate `recipes.json` with the GTNH Calculator Utility exporter and place it at:
+
 ```text
 public/recipes.json
 ```
 
 Vite serves this file as:
+
 ```text
 /recipes.json
 ```
@@ -114,11 +121,13 @@ Vite serves this file as:
 The application will reject missing, malformed, or unsupported exports with a loading error.
 
 ### 3. Start the development server
+
 ```bash
 npm run dev
 ```
 
 Vite will print the local development URL, normally:
+
 ```text
 http://localhost:5173/
 ```
@@ -126,31 +135,37 @@ http://localhost:5173/
 ## Development commands
 
 Run the development server:
+
 ```bash
 npm run dev
 ```
 
 Run the automated tests once:
+
 ```bash
 npm run test
 ```
 
 Run tests in watch mode:
+
 ```bash
 npm run test:watch
 ```
 
 Run ESLint:
+
 ```bash
 npm run lint
 ```
 
 Create a production build:
+
 ```bash
 npm run build
 ```
 
 Preview the production build:
+
 ```bash
 npm run preview
 ```

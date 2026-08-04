@@ -23,9 +23,7 @@
     "zeroAmountInputsMovedToTools": 0,
     "zeroAmountInputsRemaining": 0,
     "inferredToolAmounts": 0,
-    "sampleToolInputs": [
-      "gregtech:mixer: Plate Mold [gregtech:shape_mold_plate:0]"
-    ],
+    "sampleToolInputs": ["gregtech:mixer: Plate Mold [gregtech:shape_mold_plate:0]"],
     "nonPlannableRecipes": 0,
     "nonPlannableRecipesByMachine": {},
     "nonPositiveDurationRecipes": 0,

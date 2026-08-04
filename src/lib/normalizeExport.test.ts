@@ -5,114 +5,104 @@ import type { ExportDocument } from '../types/recipe'
 import { normalizeExportDocument } from './normalizeExport'
 
 function createDocument(): ExportDocument {
-    return structuredClone(
-        representativeExport,
-    ) as unknown as ExportDocument
+  return structuredClone(representativeExport) as unknown as ExportDocument
 }
 
 describe('normalizeExportDocument', () => {
-    it('leaves positive-duration recipes plannable', () => {
-        const normalized = normalizeExportDocument(
-            createDocument(),
-        )
+  it('leaves positive-duration recipes plannable', () => {
+    const normalized = normalizeExportDocument(createDocument())
 
-        expect(normalized.recipes[0].planning).toBeUndefined()
-        expect(normalized.diagnostics.nonPlannableRecipes).toBe(0)
-        expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(0)
+    expect(normalized.recipes[0].planning).toBeUndefined()
+    expect(normalized.diagnostics.nonPlannableRecipes).toBe(0)
+    expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(0)
+  })
+
+  it('derives overflow classification from negative durations', () => {
+    const document = createDocument()
+
+    document.recipes[0].durationTicks = -2147483569
+    document.recipes[0].durationSeconds = -107374178.45
+
+    const normalized = normalizeExportDocument(document)
+    const recipe = normalized.recipes[0]
+
+    expect(recipe.planning).toEqual({
+      supported: false,
+      issues: ['negative-duration', 'duration-overflow-suspected'],
     })
 
-    it('derives overflow classification from negative durations', () => {
-        const document = createDocument()
+    expect(normalized.diagnostics.nonPlannableRecipes).toBe(1)
+    expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(1)
+    expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(1)
+    expect(normalized.diagnostics.nonPlannableRecipesByMachine).toEqual({
+      'gregtech:mixer': 1,
+    })
+  })
 
-        document.recipes[0].durationTicks = -2147483569
-        document.recipes[0].durationSeconds = -107374178.45
+  it('derives zero-duration classification', () => {
+    const document = createDocument()
 
-        const normalized = normalizeExportDocument(document)
-        const recipe = normalized.recipes[0]
+    document.recipes[0].durationTicks = 0
+    document.recipes[0].durationSeconds = 0
 
-        expect(recipe.planning).toEqual({
-            supported: false,
-            issues: [
-                'negative-duration',
-                'duration-overflow-suspected',
-            ],
-        })
+    const normalized = normalizeExportDocument(document)
 
-        expect(normalized.diagnostics.nonPlannableRecipes).toBe(1)
-        expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(1)
-        expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(1)
-        expect(normalized.diagnostics.nonPlannableRecipesByMachine).toEqual({
-            'gregtech:mixer': 1,
-        })
+    expect(normalized.recipes[0].planning).toEqual({
+      supported: false,
+      issues: ['zero-duration'],
     })
 
-    it ('derives zero-duration classification', () => {
-        const document = createDocument()
+    expect(normalized.diagnostics.nonPlannableRecipes).toBe(1)
+    expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(1)
+    expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(0)
+  })
 
-        document.recipes[0].durationTicks = 0
-        document.recipes[0].durationSeconds = 0
+  it('derives sentinel classification from maximum durations', () => {
+    const document = createDocument()
 
-        const normalized = normalizeExportDocument(document)
+    document.recipes[0].durationTicks = 2_147_483_647
+    document.recipes[0].durationSeconds = 2_147_483_647 / 20
 
-        expect(normalized.recipes[0].planning).toEqual({
-            supported: false,
-            issues: ['zero-duration'],
-        })
+    const normalized = normalizeExportDocument(document)
 
-        expect(normalized.diagnostics.nonPlannableRecipes).toBe(1)
-        expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(1)
-        expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(0)
+    expect(normalized.recipes[0].planning).toEqual({
+      supported: false,
+      issues: ['sentinel-duration-suspected'],
     })
 
-    it('derives sentinel classification from maximum durations', () => {
-        const document = createDocument()
+    expect(normalized.diagnostics.nonPlannableRecipes).toBe(1)
+    expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(0)
+    expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(0)
+    expect(normalized.diagnostics.suspectedSentinelDurationRecipes).toBe(1)
+  })
 
-        document.recipes[0].durationTicks = 2_147_483_647
-        document.recipes[0].durationSeconds = 2_147_483_647 / 20
+  it('leaves durations below the sentinel boundary plannable', () => {
+    const document = createDocument()
 
-        const normalized = normalizeExportDocument(document)
+    document.recipes[0].durationTicks = 2_147_483_647 - 3
+    document.recipes[0].durationSeconds = (2_147_483_647 - 3) / 20
 
-        expect(normalized.recipes[0].planning).toEqual({
-            supported: false,
-            issues: ['sentinel-duration-suspected'],
-        })
+    const normalized = normalizeExportDocument(document)
 
-        expect(normalized.diagnostics.nonPlannableRecipes).toBe(1)
-        expect(normalized.diagnostics.nonPositiveDurationRecipes).toBe(0)
-        expect(normalized.diagnostics.suspectedDurationOverflowRecipes).toBe(0)
-        expect(normalized.diagnostics.suspectedSentinelDurationRecipes).toBe(1)
+    expect(normalized.recipes[0].planning).toBeUndefined()
+    expect(normalized.diagnostics.suspectedSentinelDurationRecipes).toBe(0)
+  })
+
+  it('augments incomplete exporter timing classification', () => {
+    const document = createDocument()
+
+    document.recipes[0].durationTicks = -2147483569
+    document.recipes[0].durationSeconds = -107374178.45
+    document.recipes[0].planning = {
+      supported: false,
+      issues: ['negative-duration'],
+    }
+
+    const normalized = normalizeExportDocument(document)
+
+    expect(normalized.recipes[0].planning).toEqual({
+      supported: false,
+      issues: ['negative-duration', 'duration-overflow-suspected'],
     })
-
-    it ('leaves durations below the sentinel boundary plannable', () => {
-        const document = createDocument()
-
-        document.recipes[0].durationTicks =  2_147_483_647 - 3
-        document.recipes[0].durationSeconds =  (2_147_483_647 - 3) / 20
-
-        const normalized = normalizeExportDocument(document)
-
-        expect(normalized.recipes[0].planning).toBeUndefined()
-        expect(normalized.diagnostics.suspectedSentinelDurationRecipes).toBe(0)
-    })
-
-    it ('augments incomplete exporter timing classification', () => {
-        const document = createDocument()
-
-        document.recipes[0].durationTicks = -2147483569
-        document.recipes[0].durationSeconds = -107374178.45
-        document.recipes[0].planning = {
-            supported: false,
-            issues: ['negative-duration'],
-        }
-
-        const normalized = normalizeExportDocument(document)
-
-        expect(normalized.recipes[0].planning).toEqual({
-            supported: false,
-            issues: [
-                'negative-duration',
-                'duration-overflow-suspected',
-            ],
-        })
-    })
+  })
 })
