@@ -7,12 +7,18 @@ import {
     getStackKey,
     type StackKey,
 } from './stackKey'
+import {
+    buildRecipeSearchRecord,
+    type RecipeSearchRecord,
+} from './recipeSearchRecord'
 
 export interface RecipeCatalog {
     readonly document: NormalizedExportDocument
     readonly allRecipeIds: readonly string[]
 
     readonly recipesById: ReadonlyMap<string, NormalizedExportRecipe>
+
+    readonly searchRecordsByRecipeId: ReadonlyMap<string, RecipeSearchRecord>
 
     readonly recipeIdsByMachine: ReadonlyMap<string, readonly string[]>
 
@@ -27,6 +33,8 @@ export function buildRecipeCatalog(document: NormalizedExportDocument): RecipeCa
     const allRecipeIds: string[] = []
 
     const recipesById = new Map<string, NormalizedExportRecipe>()
+
+    const searchRecordsByRecipeId = new Map<string, RecipeSearchRecord>()
 
     const recipeIdsByMachine = new Map<string, Set<string>>()
 
@@ -45,6 +53,11 @@ export function buildRecipeCatalog(document: NormalizedExportDocument): RecipeCa
 
         allRecipeIds.push(recipe.id)
         recipesById.set(recipe.id, recipe)
+
+        searchRecordsByRecipeId.set(
+            recipe.id,
+            buildRecipeSearchRecord(recipe),
+        )
 
         addRecipeId(
             recipeIdsByMachine,
@@ -75,6 +88,7 @@ export function buildRecipeCatalog(document: NormalizedExportDocument): RecipeCa
         document,
         allRecipeIds: Object.freeze([...allRecipeIds]),
         recipesById,
+        searchRecordsByRecipeId,
         recipeIdsByMachine: finalizeRecipeIdIndex(recipeIdsByMachine),
         producerRecipeIdsByStackKey: finalizeRecipeIdIndex(producerRecipeIdsByStackKey),
         consumerRecipeIdsByStackKey: finalizeRecipeIdIndex(consumerRecipeIdsByStackKey),
