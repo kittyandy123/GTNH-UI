@@ -8,6 +8,7 @@ import {
   createWorkspaceRegistry,
   getActivePlannerWindow,
   renamePlannerWindow,
+  updatePlannerWindowPlan,
 } from './workspaceRegistry'
 
 const CREATED_AT = '2026-08-04T04:00:00.000Z'
@@ -158,6 +159,58 @@ describe('workspaceRegistry', () => {
     expect(withoutActive.activeWorkspace).toEqual({
       kind: 'recipe-browser',
     })
+  })
+
+  it('updates a planner window plan immutably', () => {
+    const registry = addPlannerWindow(createWorkspaceRegistry(), {
+      id: 'window-1',
+      name: 'Iron Line',
+      plan: createTestPlan('plan-1', 'Iron Line'),
+      timestamp: CREATED_AT,
+    })
+
+    const originalWindow = registry.plannerWindowsById['window-1']
+
+    if (!originalWindow) {
+      throw new Error('Expected planner window')
+    }
+
+    const updatedPlan: PlannerPlan = {
+      ...originalWindow.plan,
+      viewState: {
+        ...originalWindow.plan.viewState,
+        focusedStackKey: 'item:minecraft:iron_ingot:0',
+      },
+    }
+
+    const updatedRegistry = updatePlannerWindowPlan(registry, 'window-1', updatedPlan, UPDATED_AT)
+
+    expect(updatedRegistry.plannerWindowsById['window-1']).toMatchObject({
+      plan: updatedPlan,
+      createdAt: CREATED_AT,
+      updatedAt: UPDATED_AT,
+    })
+
+    expect(registry.plannerWindowsById['window-1']).toBe(originalWindow)
+    expect(originalWindow.plan.viewState.focusedStackKey).toBeUndefined()
+  })
+
+  it('rejects replacing a window with a different plan identity', () => {
+    const registry = addPlannerWindow(createWorkspaceRegistry(), {
+      id: 'window-1',
+      name: 'Iron Line',
+      plan: createTestPlan('plan-1', 'Iron Line'),
+      timestamp: CREATED_AT,
+    })
+
+    expect(() =>
+      updatePlannerWindowPlan(
+        registry,
+        'window-1',
+        createTestPlan('plan-2', 'Steel Line'),
+        UPDATED_AT,
+      ),
+    ).toThrow('Planner plan ID must match window plan ID: plan-1')
   })
 
   it('rejects invalid names, IDs, and duplicate windows', () => {

@@ -34,6 +34,8 @@ interface PlannerGraphPreviewProps {
   onFindProducers: (stack: ExportStack) => void
   onFindUses: (stack: ExportStack) => void
   onOpenPlannerView?: () => void
+  showOpenPlannerView?: boolean
+  clearActionLabel?: string
 }
 
 export function PlannerGraphPreview({
@@ -49,6 +51,8 @@ export function PlannerGraphPreview({
   onFindProducers,
   onFindUses,
   onOpenPlannerView,
+  showOpenPlannerView = true,
+  clearActionLabel = 'Clear preview',
 }: PlannerGraphPreviewProps) {
   const summary = computePlannerDraftSummary(recipe, draft)
   const graph = buildVisualGraphFromPlanSummary(summary)
@@ -73,26 +77,28 @@ export function PlannerGraphPreview({
         </div>
 
         <div className="planner-preview-actions">
-          <button
-            className="primary-action-button"
-            type="button"
-            disabled={!onOpenPlannerView}
-            title={
-              onOpenPlannerView
-                ? undefined
-                : 'Named planner workspaces are the next implementation step.'
-            }
-            onClick={onOpenPlannerView}
-          >
-            Open in planner view
-          </button>
+          {showOpenPlannerView && (
+            <button
+              className="primary-action-button"
+              type="button"
+              disabled={!onOpenPlannerView}
+              title={
+                onOpenPlannerView
+                  ? undefined
+                  : 'Named planner workspaces are the next implementation step.'
+              }
+              onClick={onOpenPlannerView}
+            >
+              Open in planner view
+            </button>
+          )}
 
           <button className="secondary-action-button" type="button" onClick={onSelectRecipe}>
             View recipe
           </button>
 
           <button className="secondary-action-button" type="button" onClick={onClearPlan}>
-            Clear preview
+            {clearActionLabel}
           </button>
         </div>
       </div>

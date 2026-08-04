@@ -17,6 +17,16 @@ import { DiagnosticsGrid } from './components/DiagnosticsGrid'
 import { MachineSidebar } from './components/MachineSidebar'
 import { RecipeResults } from './components/RecipeResults'
 import { ExportFilePicker } from './components/ExportFilePicker'
+import { WorkspaceTabBar } from './components/WorkspaceTabBar'
+import {
+  activatePlannerWindow,
+  activateRecipeBrowser,
+  addPlannerWindow,
+  closePlannerWindow,
+  createWorkspaceRegistry,
+  getActivePlannerWindow,
+  updatePlannerWindowPlan,
+} from './app/model/workspaceRegistry'
 import { buildOutputGroups } from './lib/outputGroups'
 import {
   createPlannerDraft,
@@ -110,6 +120,7 @@ function App() {
   const [exportFileLoadState, setExportFileLoadState] = useState<ExportFileLoadState>({
     status: 'idle',
   })
+  const [workspaceRegistry, setWorkspaceRegistry] = useState(createWorkspaceRegistry)
   const [searchText, setSearchText] = useState('')
   const [searchMode, setSearchMode] = useState<SearchMode>('all')
   const [resultViewMode, setResultViewMode] = useState<ResultViewMode>('exact')
@@ -156,6 +167,24 @@ function App() {
   const exportDocument = loadState.status === 'loaded' ? loadState.data : undefined
 
   const recipeCatalog = loadState.status === 'loaded' ? loadState.catalog : undefined
+
+  const activePlannerWindow = getActivePlannerWindow(workspaceRegistry)
+
+  const activePlannerDraft: PlannerDraft | undefined = activePlannerWindow
+    ? {
+        plan: activePlannerWindow.plan,
+      }
+    : undefined
+
+  const activePlannerRecipeId = activePlannerDraft
+    ? getPlannerDraftRecipeId(activePlannerDraft)
+    : undefined
+
+  const activePlannerRecipe = activePlannerRecipeId
+    ? recipeCatalog?.recipesById.get(activePlannerRecipeId)
+    : undefined
+
+  const recipeBrowserIsActive = workspaceRegistry.activeWorkspace.kind === 'recipe-browser'
 
   const machineCounts = useMemo(() => {
     if (!recipeCatalog) {
@@ -230,6 +259,7 @@ function App() {
     setStackNavigationQuery(undefined)
     setPlannerDraft(undefined)
     setPlannerNavigationContext(undefined)
+    setWorkspaceRegistry(createWorkspaceRegistry())
   }
 
   async function loadSelectedExportFile(file: File) {
@@ -258,6 +288,42 @@ function App() {
     }
   }
 
+  function openPlannerWorkspace() {
+    if (!plannerDraft) {
+      return
+    }
+
+    setWorkspaceRegistry((currentRegistry) =>
+      addPlannerWindow(currentRegistry, {
+        id: `planner-window:${crypto.randomUUID()}`,
+        name: plannerDraft.plan.name,
+        plan: plannerDraft.plan,
+        timestamp: new Date().toISOString(),
+      }),
+    )
+  }
+
+  function updateActivePlannerDraft(updateDraft: (draft: PlannerDraft) => PlannerDraft) {
+    setWorkspaceRegistry((currentRegistry) => {
+      const plannerWindow = getActivePlannerWindow(currentRegistry)
+
+      if (!plannerWindow) {
+        return currentRegistry
+      }
+
+      const updatedDraft = updateDraft({
+        plan: plannerWindow.plan,
+      })
+
+      return updatePlannerWindowPlan(
+        currentRegistry,
+        plannerWindow.id,
+        updatedDraft.plan,
+        new Date().toISOString(),
+      )
+    })
+  }
+
   function selectMachine(machineId: string | undefined) {
     setSelectedMachineId(machineId)
     setSelectedRecipeId(undefined)
@@ -271,6 +337,7 @@ function App() {
     mode: StackNavigationMode,
     plannerContext?: PlannerNavigationContext,
   ) {
+    setWorkspaceRegistry((currentRegistry) => activateRecipeBrowser(currentRegistry))
     setSearchText(formatExactStackSearchToken(stack))
     setSearchMode(mode)
     setResultViewMode('exact')
@@ -287,6 +354,7 @@ function App() {
   }
 
   function focusRecipe(recipeId: string) {
+    setWorkspaceRegistry((currentRegistry) => activateRecipeBrowser(currentRegistry))
     setSearchText(recipeId)
     setSearchMode('ids')
     setResultViewMode('exact')
@@ -326,7 +394,24 @@ function App() {
         </div>
       </header>
 
-      {loadState.status === 'loaded' && (
+      <WorkspaceTabBar
+        registry={workspaceRegistry}
+        onActivateRecipeBrowser={() =>
+          setWorkspaceRegistry((currentRegistry) => activateRecipeBrowser(currentRegistry))
+        }
+        onActivatePlannerWindow={(plannerWindowId) =>
+          setWorkspaceRegistry((currentRegistry) =>
+            activatePlannerWindow(currentRegistry, plannerWindowId),
+          )
+        }
+        onClosePlannerWindow={(plannerWindowId) =>
+          setWorkspaceRegistry((currentRegistry) =>
+            closePlannerWindow(currentRegistry, plannerWindowId),
+          )
+        }
+      />
+
+      {recipeBrowserIsActive && loadState.status === 'loaded' && (
         <DiagnosticsGrid diagnostics={loadState.data.diagnostics} />
       )}
 
@@ -357,71 +442,75 @@ function App() {
         </section>
       )}
 
-      <section className="search-panel" aria-label="Recipe search">
-        <label className="search-label" htmlFor="recipe-search">
-          Search recipes
-        </label>
-        <input
-          id="recipe-search"
-          className="search-input"
-          type="search"
-          placeholder="Search by item, fluid, machine, or recipe ID..."
-          value={searchText}
-          disabled={loadState.status !== 'loaded'}
-          onChange={(event) => {
-            setSearchText(event.target.value)
-            setSelectedRecipeId(undefined)
-            setSelectedOutputGroupKey(undefined)
-            setStackNavigationQuery(undefined)
-            setPlannerNavigationContext(undefined)
-          }}
-        />
+      {recipeBrowserIsActive && (
+        <section className="search-panel" aria-label="Recipe search">
+          <label className="search-label" htmlFor="recipe-search">
+            Search recipes
+          </label>
+          <input
+            id="recipe-search"
+            className="search-input"
+            type="search"
+            placeholder="Search by item, fluid, machine, or recipe ID..."
+            value={searchText}
+            disabled={loadState.status !== 'loaded'}
+            onChange={(event) => {
+              setSearchText(event.target.value)
+              setSelectedRecipeId(undefined)
+              setSelectedOutputGroupKey(undefined)
+              setStackNavigationQuery(undefined)
+              setPlannerNavigationContext(undefined)
+            }}
+          />
 
-        <div className="search-mode-row" aria-label="Search scope">
-          {SEARCH_MODE_OPTIONS.map((option) => (
-            <button
-              className={
-                searchMode === option.value ? 'search-mode-button active' : 'search-mode-button'
-              }
-              key={option.value}
-              type="button"
-              disabled={loadState.status !== 'loaded'}
-              onClick={() => {
-                setSearchMode(option.value)
-                setSelectedRecipeId(undefined)
-                setSelectedOutputGroupKey(undefined)
-                setStackNavigationQuery(undefined)
-                setPlannerNavigationContext(undefined)
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+          <div className="search-mode-row" aria-label="Search scope">
+            {SEARCH_MODE_OPTIONS.map((option) => (
+              <button
+                className={
+                  searchMode === option.value ? 'search-mode-button active' : 'search-mode-button'
+                }
+                key={option.value}
+                type="button"
+                disabled={loadState.status !== 'loaded'}
+                onClick={() => {
+                  setSearchMode(option.value)
+                  setSelectedRecipeId(undefined)
+                  setSelectedOutputGroupKey(undefined)
+                  setStackNavigationQuery(undefined)
+                  setPlannerNavigationContext(undefined)
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="search-mode-row" aria-label="Result view">
-          {RESULT_VIEW_OPTIONS.map((option) => (
-            <button
-              className={
-                resultViewMode === option.value ? 'search-mode-button active' : 'search-mode-button'
-              }
-              key={option.value}
-              type="button"
-              disabled={loadState.status !== 'loaded'}
-              onClick={() => {
-                setResultViewMode(option.value)
-                setSelectedRecipeId(undefined)
-                setSelectedOutputGroupKey(undefined)
-                setPlannerNavigationContext(undefined)
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </section>
+          <div className="search-mode-row" aria-label="Result view">
+            {RESULT_VIEW_OPTIONS.map((option) => (
+              <button
+                className={
+                  resultViewMode === option.value
+                    ? 'search-mode-button active'
+                    : 'search-mode-button'
+                }
+                key={option.value}
+                type="button"
+                disabled={loadState.status !== 'loaded'}
+                onClick={() => {
+                  setResultViewMode(option.value)
+                  setSelectedRecipeId(undefined)
+                  setSelectedOutputGroupKey(undefined)
+                  setPlannerNavigationContext(undefined)
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {plannerNavigationContext && plannedRecipe && (
+      {recipeBrowserIsActive && plannerNavigationContext && plannedRecipe && (
         <PlannerNavigationNotice
           stack={plannerNavigationContext.stack}
           purpose={plannerNavigationContext.purpose}
@@ -430,7 +519,7 @@ function App() {
         />
       )}
 
-      {plannedRecipe && plannerDraft && (
+      {recipeBrowserIsActive && plannedRecipe && plannerDraft && (
         <PlannerGraphPreview
           recipe={plannedRecipe}
           draft={plannerDraft}
@@ -443,6 +532,9 @@ function App() {
                 : undefined,
             )
           }
+
+          onOpenPlannerView={openPlannerWorkspace}
+
           onFixedMachineCountChange={(fixedMachineCount) =>
             setPlannerDraft((currentDraft) =>
               currentDraft
@@ -486,84 +578,159 @@ function App() {
         />
       )}
 
-      <section className="planner-layout">
-        <MachineSidebar
-          machineCounts={machineCounts}
-          selectedMachineId={selectedMachineId}
-          loaded={loadState.status === 'loaded'}
-          onSelectMachine={selectMachine}
-        />
-
-        <RecipeResults
-          loaded={loadState.status === 'loaded'}
-          filteredRecipes={filteredRecipes}
-          outputGroups={outputGroups}
-          selectedOutputGroup={selectedOutputGroup}
-          selectedRecipeId={selectedRecipeId}
-          resultViewMode={resultViewMode}
-          onSelectRecipe={(recipeId) => setSelectedRecipeId(recipeId)}
-          onSelectOutputGroup={(group) => {
-            setSelectedOutputGroupKey(group.key)
-
-            const firstRecipe = group.recipes[0]
-
-            if (firstRecipe) {
-              setSelectedRecipeId(firstRecipe.id)
+      {!recipeBrowserIsActive &&
+        activePlannerWindow &&
+        activePlannerDraft &&
+        activePlannerRecipe && (
+          <PlannerGraphPreview
+            recipe={activePlannerRecipe}
+            draft={activePlannerDraft}
+            showOpenPlannerView={false}
+            clearActionLabel="Close workspace"
+            onSelectRecipe={() => {
+              setPlannerDraft(activePlannerDraft)
+              focusRecipe(activePlannerRecipe.id)
+            }}
+            onClearPlan={() =>
+              setWorkspaceRegistry((currentRegistry) =>
+                closePlannerWindow(currentRegistry, activePlannerWindow.id),
+              )
             }
-          }}
-          onClearOutputGroup={() => {
-            setSelectedOutputGroupKey(undefined)
-            setSelectedRecipeId(undefined)
-          }}
-        />
+            onMachineCountModeChange={(machineCountMode) =>
+              updateActivePlannerDraft((currentDraft) =>
+                setPlannerDraftMachineCountMode(currentDraft, machineCountMode),
+              )
+            }
+            onFixedMachineCountChange={(fixedMachineCount) =>
+              updateActivePlannerDraft((currentDraft) =>
+                setPlannerDraftFixedMachineCount(currentDraft, fixedMachineCount),
+              )
+            }
+            onConstraintSolveModeChange={(solveMode) =>
+              updateActivePlannerDraft((currentDraft) =>
+                setPlannerDraftConstraintSolveMode(currentDraft, solveMode),
+              )
+            }
+            onStackConstraintRateChange={(stackKey, role, ratePerSecond) =>
+              updateActivePlannerDraft((currentDraft) =>
+                setPlannerDraftStackConstraintRate(currentDraft, stackKey, role, ratePerSecond),
+              )
+            }
+            onTargetOutputIndexChange={(targetOutputIndex) =>
+              updateActivePlannerDraft((currentDraft) =>
+                setPlannerDraftTargetOutputIndex(
+                  currentDraft,
+                  targetOutputIndex,
+                  activePlannerRecipe,
+                ),
+              )
+            }
+            onFindProducers={(stack) => {
+              setPlannerDraft(activePlannerDraft)
 
-        <aside className="recipe-details" aria-label="Selected recipe details">
-          <div className="panel-heading">
-            <h2>Details</h2>
-            <p>Select a recipe to inspect inputs, outputs, duration, EU/t, and metadata.</p>
-          </div>
+              navigateToStack(stack, 'outputs', {
+                stack,
+                purpose: 'producers',
+              })
+            }}
+            onFindUses={(stack) => {
+              setPlannerDraft(activePlannerDraft)
 
-          {selectedRecipe ? (
-            <RecipeDetails
-              recipe={selectedRecipe}
-              isPlanned={plannedRecipeId === selectedRecipe.id}
-              onPlanRecipe={() => {
-                if (selectedRecipe.planning?.supported === false) {
-                  return
-                }
+              navigateToStack(stack, 'inputs', {
+                stack,
+                purpose: 'uses',
+              })
+            }}
+          />
+        )}
 
-                setPlannerDraft(createPlannerDraft(selectedRecipe))
-              }}
-              onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
-              onFindUses={(stack) => navigateToStack(stack, 'inputs')}
-            />
-          ) : loadState.status === 'loaded' ? (
-            <div className="export-detail-card">
-              <h3>{loadState.data.pack.name}</h3>
-              <dl>
-                <div>
-                  <dt>Minecraft</dt>
-                  <dd>{loadState.data.pack.minecraftVersion}</dd>
-                </div>
-                <div>
-                  <dt>Exporter</dt>
-                  <dd>{loadState.data.export.exporterVersion}</dd>
-                </div>
-                <div>
-                  <dt>Source</dt>
-                  <dd>{loadState.data.export.source}</dd>
-                </div>
-                <div>
-                  <dt>Exported at</dt>
-                  <dd>{formatDate(loadState.data.export.exportedAt)}</dd>
-                </div>
-              </dl>
+      {recipeBrowserIsActive && (
+        <section className="planner-layout">
+          <MachineSidebar
+            machineCounts={machineCounts}
+            selectedMachineId={selectedMachineId}
+            loaded={loadState.status === 'loaded'}
+            onSelectMachine={selectMachine}
+          />
+
+          <RecipeResults
+            loaded={loadState.status === 'loaded'}
+            filteredRecipes={filteredRecipes}
+            outputGroups={outputGroups}
+            selectedOutputGroup={selectedOutputGroup}
+            selectedRecipeId={selectedRecipeId}
+            resultViewMode={resultViewMode}
+            onSelectRecipe={(recipeId) => setSelectedRecipeId(recipeId)}
+            onSelectOutputGroup={(group) => {
+              setSelectedOutputGroupKey(group.key)
+
+              const firstRecipe = group.recipes[0]
+
+              if (firstRecipe) {
+                setSelectedRecipeId(firstRecipe.id)
+              }
+            }}
+            onClearOutputGroup={() => {
+              setSelectedOutputGroupKey(undefined)
+              setSelectedRecipeId(undefined)
+            }}
+          />
+
+          <aside className="recipe-details" aria-label="Selected recipe details">
+            <div className="panel-heading">
+              <h2>Details</h2>
+              <p>Select a recipe to inspect inputs, outputs, duration, EU/t, and metadata.</p>
             </div>
-          ) : (
-            <div className="empty-card">No recipe selected.</div>
-          )}
-        </aside>
-      </section>
+
+            {selectedRecipe ? (
+              <RecipeDetails
+                recipe={selectedRecipe}
+                isPlanned={plannedRecipeId === selectedRecipe.id}
+                onPlanRecipe={() => {
+                  if (selectedRecipe.planning?.supported === false) {
+                    return
+                  }
+
+                  setPlannerDraft(createPlannerDraft(selectedRecipe))
+                }}
+                onFindProducers={(stack) => navigateToStack(stack, 'outputs')}
+                onFindUses={(stack) => navigateToStack(stack, 'inputs')}
+              />
+            ) : loadState.status === 'loaded' ? (
+              <div className="export-detail-card">
+                <h3>{loadState.data.pack.name}</h3>
+                <dl>
+                  <div>
+                    <dt>Minecraft</dt>
+                    <dd>{loadState.data.pack.minecraftVersion}</dd>
+                  </div>
+                  <div>
+                    <dt>Exporter</dt>
+                    <dd>{loadState.data.export.exporterVersion}</dd>
+                  </div>
+                  <div>
+                    <dt>Source</dt>
+                    <dd>{loadState.data.export.source}</dd>
+                  </div>
+                  <div>
+                    <dt>Exported at</dt>
+                    <dd>{formatDate(loadState.data.export.exportedAt)}</dd>
+                  </div>
+                </dl>
+              </div>
+            ) : (
+              <div className="empty-card">No recipe selected.</div>
+            )}
+          </aside>
+        </section>
+      )}
+
+      {!recipeBrowserIsActive &&
+        (!activePlannerWindow || !activePlannerDraft || !activePlannerRecipe) && (
+          <section className="empty-state">
+            The planner recipe is unavailable in the loaded export.
+          </section>
+        )}
     </main>
   )
 }
