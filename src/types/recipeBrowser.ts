@@ -4,7 +4,7 @@ import type { ExportStack } from './recipe'
 export type ResultViewMode = 'exact' | 'output-index'
 
 export interface OutputRecipeGroup {
-    key: string
-    output: ExportStack
-    recipes: NormalizedExportRecipe[]
+  key: string
+  output: ExportStack
+  recipes: NormalizedExportRecipe[]
 }

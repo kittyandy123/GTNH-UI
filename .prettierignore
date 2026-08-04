@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.vite
+.idea
+
+package-lock.json
+public/recipes.json
+
+*.zip

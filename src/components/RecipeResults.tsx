@@ -1,160 +1,113 @@
-import {
-    formatNumber,
-} from '../lib/recipeHelpers'
-import type {
-    NormalizedExportRecipe,
-} from '../lib/normalizeExport'
-import type {
-    OutputRecipeGroup,
-    ResultViewMode,
-} from '../types/recipeBrowser'
-import {
-    VirtualRecipeList,
-} from './VirtualRecipeList'
-import {
-    VirtualOutputGroupList,
-} from './VirtualOutputGroupList'
+import { formatNumber } from '../lib/recipeHelpers'
+import type { NormalizedExportRecipe } from '../lib/normalizeExport'
+import type { OutputRecipeGroup, ResultViewMode } from '../types/recipeBrowser'
+import { VirtualRecipeList } from './VirtualRecipeList'
+import { VirtualOutputGroupList } from './VirtualOutputGroupList'
 
 interface RecipeResultsProps {
-    loaded: boolean
-    filteredRecipes: NormalizedExportRecipe[]
-    outputGroups: OutputRecipeGroup[]
-    selectedOutputGroup: OutputRecipeGroup | undefined
-    selectedRecipeId: string | undefined
-    resultViewMode: ResultViewMode
-    onSelectRecipe: (recipeId: string) => void
-    onSelectOutputGroup: (group: OutputRecipeGroup) => void
-    onClearOutputGroup: () => void
+  loaded: boolean
+  filteredRecipes: NormalizedExportRecipe[]
+  outputGroups: OutputRecipeGroup[]
+  selectedOutputGroup: OutputRecipeGroup | undefined
+  selectedRecipeId: string | undefined
+  resultViewMode: ResultViewMode
+  onSelectRecipe: (recipeId: string) => void
+  onSelectOutputGroup: (group: OutputRecipeGroup) => void
+  onClearOutputGroup: () => void
 }
 
 export function RecipeResults({
-    loaded,
-    filteredRecipes,
-    outputGroups,
-    selectedOutputGroup,
-    selectedRecipeId,
-    resultViewMode,
-    onSelectRecipe,
-    onSelectOutputGroup,
-    onClearOutputGroup,
+  loaded,
+  filteredRecipes,
+  outputGroups,
+  selectedOutputGroup,
+  selectedRecipeId,
+  resultViewMode,
+  onSelectRecipe,
+  onSelectOutputGroup,
+  onClearOutputGroup,
 }: RecipeResultsProps) {
-    return (
-        <section className="recipe-results" aria-label="Recipe results">
-            <div className="panel-heading">
-                <h2>Recipes</h2>
-                <p>
-                    {getRecipeResultSummary(
-                        loaded,
-                        filteredRecipes.length,
-                        outputGroups.length,
-                        resultViewMode,
-                        selectedOutputGroup,
-                    )}
-                </p>
+  return (
+    <section className="recipe-results" aria-label="Recipe results">
+      <div className="panel-heading">
+        <h2>Recipes</h2>
+        <p>
+          {getRecipeResultSummary(
+            loaded,
+            filteredRecipes.length,
+            outputGroups.length,
+            resultViewMode,
+            selectedOutputGroup,
+          )}
+        </p>
+      </div>
+
+      {loaded ? (
+        filteredRecipes.length === 0 ? (
+          <div className="recipe-list">
+            <div className="empty-state">
+              <h3>No matching recipes</h3>
+              <p>Try a different item, fluid, machine, or recipe ID.</p>
+            </div>
+          </div>
+        ) : resultViewMode === 'exact' ? (
+          <VirtualRecipeList
+            recipes={filteredRecipes}
+            selectedRecipeId={selectedRecipeId}
+            onSelectRecipe={onSelectRecipe}
+          />
+        ) : selectedOutputGroup ? (
+          <div className="output-group-drilldown">
+            <div className="group-drilldown-header">
+              <button className="group-back-button" type="button" onClick={onClearOutputGroup}>
+                ← Back to output index
+              </button>
+
+              <div className="group-drilldown-title">
+                <strong>{selectedOutputGroup.output.displayName}</strong>
+
+                <span>{formatNumber(selectedOutputGroup.recipes.length)} exact recipes</span>
+              </div>
             </div>
 
-            {loaded ? (
-                filteredRecipes.length === 0 ? (
-                    <div className="recipe-list">
-                        <div className="empty-state">
-                            <h3>No matching recipes</h3>
-                            <p>
-                                Try a different item, fluid, machine,
-                                or recipe ID.
-                            </p>
-                        </div>
-                    </div>
-                ) : resultViewMode === 'exact' ? (
-                    <VirtualRecipeList
-                        recipes={filteredRecipes}
-                        selectedRecipeId={selectedRecipeId}
-                        onSelectRecipe={onSelectRecipe}
-                    />
-                ) : selectedOutputGroup ? (
-                    <div className="output-group-drilldown">
-                        <div className="group-drilldown-header">
-                            <button
-                                className="group-back-button"
-                                type="button"
-                                onClick={onClearOutputGroup}
-                            >
-                                ← Back to output index
-                            </button>
-
-                            <div className="group-drilldown-title">
-                                <strong>
-                                    {
-                                        selectedOutputGroup
-                                            .output
-                                            .displayName
-                                    }
-                                </strong>
-
-                                <span>
-                    {formatNumber(
-                        selectedOutputGroup
-                            .recipes
-                            .length,
-                    )}{' '}
-                                    exact recipes
-                </span>
-                            </div>
-                        </div>
-
-                        <VirtualRecipeList
-                            className={
-                                'output-group-drilldown-list'
-                            }
-                            recipes={
-                                selectedOutputGroup.recipes
-                            }
-                            selectedRecipeId={
-                                selectedRecipeId
-                            }
-                            onSelectRecipe={
-                                onSelectRecipe
-                            }
-                        />
-                    </div>
-                ) : (
-                    <VirtualOutputGroupList
-                        groups={outputGroups}
-                        onSelectOutputGroup={
-                            onSelectOutputGroup
-                        }
-                    />
-                )
-            ) : (
-                <div className="empty-state">
-                    <h3>Ready for recipe data</h3>
-                    <p>
-                        Load the exported recipe file to search
-                        recipes and inspect details.
-                    </p>
-                </div>
-            )}
-        </section>
-    )
+            <VirtualRecipeList
+              className={'output-group-drilldown-list'}
+              recipes={selectedOutputGroup.recipes}
+              selectedRecipeId={selectedRecipeId}
+              onSelectRecipe={onSelectRecipe}
+            />
+          </div>
+        ) : (
+          <VirtualOutputGroupList groups={outputGroups} onSelectOutputGroup={onSelectOutputGroup} />
+        )
+      ) : (
+        <div className="empty-state">
+          <h3>Ready for recipe data</h3>
+          <p>Load the exported recipe file to search recipes and inspect details.</p>
+        </div>
+      )}
+    </section>
+  )
 }
 
 function getRecipeResultSummary(
-    loaded: boolean,
-    recipeCount: number,
-    groupCount: number,
-    resultViewMode: ResultViewMode,
-    selectedOutputGroup: OutputRecipeGroup | undefined,
+  loaded: boolean,
+  recipeCount: number,
+  groupCount: number,
+  resultViewMode: ResultViewMode,
+  selectedOutputGroup: OutputRecipeGroup | undefined,
 ): string {
-    if (!loaded) {
-        return 'Search results will appear here.'
+  if (!loaded) {
+    return 'Search results will appear here.'
+  }
+
+  if (resultViewMode === 'output-index') {
+    if (selectedOutputGroup) {
+      return `${formatNumber(selectedOutputGroup.recipes.length)} exact recipes producing ${selectedOutputGroup.output.displayName}.`
     }
 
-    if (resultViewMode === 'output-index') {
-        if (selectedOutputGroup) {
-            return `${formatNumber(selectedOutputGroup.recipes.length)} exact recipes producing ${selectedOutputGroup.output.displayName}.`
-        }
+    return `${formatNumber(groupCount)} output entries from ${formatNumber(recipeCount)} matching recipes.`
+  }
 
-        return `${formatNumber(groupCount)} output entries from ${formatNumber(recipeCount)} matching recipes.`
-    }
-
-    return `${formatNumber(recipeCount)} matching recipes.`
+  return `${formatNumber(recipeCount)} matching recipes.`
 }

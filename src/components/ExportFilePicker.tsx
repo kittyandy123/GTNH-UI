@@ -1,6 +1,4 @@
-import {
-  useRef,
-} from 'react'
+import { useRef } from 'react'
 
 interface ExportFilePickerProps {
   disabled: boolean
@@ -8,25 +6,16 @@ interface ExportFilePickerProps {
   onSelectFile: (file: File) => void
 }
 
-export function ExportFilePicker({
-                                   disabled,
-                                   label,
-                                   onSelectFile,
-                                 }: ExportFilePickerProps) {
-  const inputRef =
-    useRef<HTMLInputElement>(null)
+export function ExportFilePicker({ disabled, label, onSelectFile }: ExportFilePickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
 
   return (
     <>
       <button
-        className={
-          'secondary-action-button export-file-button'
-        }
+        className={'secondary-action-button export-file-button'}
         type="button"
         disabled={disabled}
-        onClick={() =>
-          inputRef.current?.click()
-        }
+        onClick={() => inputRef.current?.click()}
       >
         {label}
       </button>
@@ -37,9 +26,7 @@ export function ExportFilePicker({
         accept=".json,application/json"
         type="file"
         onChange={(event) => {
-          const file =
-            event.currentTarget
-              .files?.[0]
+          const file = event.currentTarget.files?.[0]
 
           event.currentTarget.value = ''
 

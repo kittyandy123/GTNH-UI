@@ -5,13 +5,7 @@
   "description": "Schema for recipes.json documents produced by GTNH Calculator Utility schema version 2.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schemaVersion",
-    "pack",
-    "export",
-    "diagnostics",
-    "recipes"
-  ],
+  "required": ["schemaVersion", "pack", "export", "diagnostics", "recipes"],
   "properties": {
     "schemaVersion": {
       "const": 2
@@ -36,10 +30,7 @@
     "pack": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "minecraftVersion"
-      ],
+      "required": ["name", "minecraftVersion"],
       "properties": {
         "name": {
           "const": "GT New Horizons"
@@ -52,11 +43,7 @@
     "exportInfo": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "source",
-        "exporterVersion",
-        "exportedAt"
-      ],
+      "required": ["source", "exporterVersion", "exportedAt"],
       "properties": {
         "source": {
           "const": "gtnh-calculator-utility"
@@ -220,11 +207,7 @@
     "machine": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "name",
-        "category"
-      ],
+      "required": ["id", "name", "category"],
       "properties": {
         "id": {
           "type": "string",
@@ -243,20 +226,10 @@
     "stack": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "kind",
-        "id",
-        "meta",
-        "displayName",
-        "amount",
-        "unit"
-      ],
+      "required": ["kind", "id", "meta", "displayName", "amount", "unit"],
       "properties": {
         "kind": {
-          "enum": [
-            "item",
-            "fluid"
-          ]
+          "enum": ["item", "fluid"]
         },
         "id": {
           "type": "string",
@@ -274,10 +247,7 @@
           "minimum": 0
         },
         "unit": {
-          "enum": [
-            "items",
-            "L"
-          ]
+          "enum": ["items", "L"]
         },
         "chance": {
           "type": "number",
@@ -293,9 +263,7 @@
                 "const": "item"
               }
             },
-            "required": [
-              "kind"
-            ]
+            "required": ["kind"]
           },
           "then": {
             "properties": {
@@ -312,9 +280,7 @@
                 "const": "fluid"
               }
             },
-            "required": [
-              "kind"
-            ]
+            "required": ["kind"]
           },
           "then": {
             "properties": {
@@ -332,10 +298,7 @@
     "planning": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "supported",
-        "issues"
-      ],
+      "required": ["supported", "issues"],
       "properties": {
         "supported": {
           "const": false
