@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import {
     loadRecipeExport,
+  loadRecipeExportFile,
 } from './lib/loadRecipes'
 import {
     formatDate,
@@ -16,6 +17,7 @@ import {
     type SearchMode,
 } from './lib/recipeHelpers'
 import {
+  type ExportDocument,
     type ExportStack,
 } from './types/recipe'
 import {
@@ -36,6 +38,9 @@ import {
 import {
     RecipeResults,
 } from './components/RecipeResults'
+import {
+  ExportFilePicker,
+} from './components/ExportFilePicker'
 import {
     buildOutputGroups,
 } from './lib/outputGroups'
@@ -87,8 +92,21 @@ type LoadState =
         status: 'loaded'
         data: NormalizedExportDocument
         catalog: RecipeCatalog
+  sourceLabel: string
     }
   | { status: 'error'; message: string }
+
+type ExportFileLoadState =
+  | { status: 'idle' }
+  | {
+  status: 'loading'
+  fileName: string
+}
+  | {
+  status: 'error'
+  fileName: string
+  message: string
+}
 
 type StackNavigationMode =
   Extract<SearchMode, 'inputs' | 'outputs'>
@@ -103,8 +121,32 @@ interface PlannerNavigationContext {
   purpose: PlannerNavigationPurpose
 }
 
+function createLoadedRecipeExportState(
+  rawData: ExportDocument,
+  sourceLabel: string,
+): Extract<LoadState, { status: 'loaded' }> {
+  const data =
+    normalizeExportDocument(rawData)
+
+  const catalog =
+    buildRecipeCatalog(data)
+
+  return {
+    status: 'loaded',
+    data,
+    catalog,
+    sourceLabel,
+  }
+}
+
 function App() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
+  const [
+    exportFileLoadState,
+    setExportFileLoadState,
+  ] = useState<ExportFileLoadState>({
+    status: 'idle',
+  })
   const [searchText, setSearchText] = useState('')
   const [searchMode, setSearchMode] = useState<SearchMode>('all')
   const [resultViewMode, setResultViewMode] = useState<ResultViewMode>('exact')
@@ -124,16 +166,17 @@ function App() {
 
     async function loadRecipes() {
       try {
-        const rawData = await loadRecipeExport()
-        const data = normalizeExportDocument(rawData)
-        const catalog = buildRecipeCatalog(data)
+        const rawData =
+          await loadRecipeExport()
+
+        const nextLoadState =
+          createLoadedRecipeExportState(
+            rawData,
+            'recipes.json',
+          )
 
         if (!cancelled) {
-          setLoadState({
-            status: 'loaded',
-            data,
-            catalog,
-          })
+          setLoadState(nextLoadState)
         }
       } catch (error) {
         if (!cancelled) {
@@ -246,6 +289,54 @@ function App() {
       ? recipeCatalog?.recipesById.get(plannedRecipeId)
       : undefined
 
+  function resetBrowserStateForNewExport() {
+    setSearchText('')
+    setSearchMode('all')
+    setResultViewMode('exact')
+    setSelectedOutputGroupKey(undefined)
+    setSelectedMachineId(undefined)
+    setSelectedRecipeId(undefined)
+    setStackNavigationQuery(undefined)
+    setPlannerDraft(undefined)
+    setPlannerNavigationContext(undefined)
+  }
+
+  async function loadSelectedExportFile(
+    file: File,
+  ) {
+    setExportFileLoadState({
+      status: 'loading',
+      fileName: file.name,
+    })
+
+    try {
+      const rawData =
+        await loadRecipeExportFile(file)
+
+      const nextLoadState =
+        createLoadedRecipeExportState(
+          rawData,
+          file.name,
+        )
+
+      setLoadState(nextLoadState)
+      resetBrowserStateForNewExport()
+
+      setExportFileLoadState({
+        status: 'idle',
+      })
+    } catch (error) {
+      setExportFileLoadState({
+        status: 'error',
+        fileName: file.name,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to load recipe export',
+      })
+    }
+  }
+
   function selectMachine(machineId: string | undefined) {
     setSelectedMachineId(machineId)
     setSelectedRecipeId(undefined)
@@ -289,10 +380,36 @@ function App() {
             <h1>Recipe Planner</h1>
           </div>
 
-          <section className="export-summary" aria-label="Loaded export summary">
-            <span className="status-pill">{getStatusText(loadState)}</span>
-            <span>{getExportSubtitle(loadState)}</span>
+          <div className="export-controls">
+            <section
+              className="export-summary"
+              aria-label="Loaded export summary"
+            >
+                    <span className="status-pill">
+                        {getStatusText(loadState)}
+                    </span>
+
+              <span>
+                        {getExportSubtitle(loadState)}
+                    </span>
           </section>
+
+            <ExportFilePicker
+              disabled={
+                exportFileLoadState.status ===
+                'loading'
+              }
+              label={
+                exportFileLoadState.status ===
+                'loading'
+                  ? `Loading ${exportFileLoadState.fileName}…`
+                  : 'Load export file'
+              }
+              onSelectFile={(file) => {
+                void loadSelectedExportFile(file)
+              }}
+            />
+          </div>
         </header>
 
         {loadState.status === 'loaded' && (
@@ -305,6 +422,37 @@ function App() {
               <span>{loadState.message}</span>
             </section>
         )}
+
+        {exportFileLoadState.status ===
+          'error' && (
+            <section
+              className="error-banner"
+              role="alert"
+            >
+              <strong>
+                Could not load{' '}
+                {exportFileLoadState.fileName}.
+              </strong>
+
+              <span>
+            {exportFileLoadState.message}
+        </span>
+
+              <button
+                className={
+                  'secondary-action-button export-error-dismiss'
+                }
+                type="button"
+                onClick={() =>
+                  setExportFileLoadState({
+                    status: 'idle',
+                  })
+                }
+              >
+                Dismiss
+              </button>
+            </section>
+          )}
 
         <section className="search-panel" aria-label="Recipe search">
           <label className="search-label" htmlFor="recipe-search">
@@ -542,7 +690,12 @@ function getExportSubtitle(loadState: LoadState): string {
     case 'loading':
       return 'Reading recipes.json'
     case 'loaded':
-      return `${formatNumber(loadState.data.recipes.length)} recipes available`
+      return (
+        `${loadState.sourceLabel} · ` +
+        `${formatNumber(
+          loadState.data.recipes.length,
+        )} recipes available`
+      )
     case 'error':
       return 'Recipe browser POC'
   }
