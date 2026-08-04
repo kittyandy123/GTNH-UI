@@ -7,74 +7,68 @@ import {
     useVirtualizer,
 } from '@tanstack/react-virtual'
 import type {
-    NormalizedExportRecipe,
-} from '../lib/normalizeExport'
+    OutputRecipeGroup,
+} from '../types/recipeBrowser'
 import {
-    RecipeCard,
-} from './RecipeCard'
+    OutputGroupCard,
+} from './OutputGroupCard'
 
-const ESTIMATED_RECIPE_CARD_HEIGHT = 136
-const RECIPE_CARD_GAP = 10
-const OVERSCAN_RECIPE_COUNT = 6
+const ESTIMATED_OUTPUT_GROUP_HEIGHT = 136
+const OUTPUT_GROUP_GAP = 10
+const OVERSCAN_OUTPUT_GROUP_COUNT = 6
 
-interface VirtualRecipeListProps {
-    recipes: readonly NormalizedExportRecipe[]
-    selectedRecipeId: string | undefined
-    className?: string
-    onSelectRecipe: (recipeId: string) => void
+interface VirtualOutputGroupListProps {
+    groups: readonly OutputRecipeGroup[]
+    onSelectOutputGroup: (
+        group: OutputRecipeGroup,
+    ) => void
 }
 
-export function VirtualRecipeList({
-                                      recipes,
-                                      selectedRecipeId,
-                                      className,
-                                      onSelectRecipe,
-                                  }: VirtualRecipeListProps) {
+export function VirtualOutputGroupList({
+                                           groups,
+                                           onSelectOutputGroup,
+                                       }: VirtualOutputGroupListProps) {
     const scrollElementRef =
         useRef<HTMLDivElement>(null)
 
     const getItemKey = useCallback(
         (index: number) =>
-            recipes[index]?.id ?? index,
-        [recipes],
+            groups[index]?.key ?? index,
+        [groups],
     )
 
     // TanStack Virtual exposes mutable functions that React Compiler cannot
     // safely memoize. This component is intentionally skipped.
     // eslint-disable-next-line react-hooks/incompatible-library
     const rowVirtualizer = useVirtualizer({
-        count: recipes.length,
+        count: groups.length,
         getScrollElement: () =>
             scrollElementRef.current,
         estimateSize: () =>
-            ESTIMATED_RECIPE_CARD_HEIGHT,
+            ESTIMATED_OUTPUT_GROUP_HEIGHT,
         getItemKey,
-        gap: RECIPE_CARD_GAP,
-        overscan: OVERSCAN_RECIPE_COUNT,
+        gap: OUTPUT_GROUP_GAP,
+        overscan: OVERSCAN_OUTPUT_GROUP_COUNT,
         useFlushSync: false,
     })
 
     useEffect(() => {
         rowVirtualizer.scrollToOffset(0)
     }, [
-        recipes,
+        groups,
         rowVirtualizer,
     ])
 
     return (
         <div
             ref={scrollElementRef}
-            className={[
-                'recipe-list',
-                'virtual-recipe-list',
-                className,
-            ]
-                .filter(Boolean)
-                .join(' ')}
+            className={
+                'recipe-list virtual-output-group-list'
+            }
         >
             <div
                 className={
-                    'virtual-recipe-list-inner'
+                    'virtual-output-group-list-inner'
                 }
                 style={{
                     height:
@@ -84,12 +78,12 @@ export function VirtualRecipeList({
                 {rowVirtualizer
                     .getVirtualItems()
                     .map((virtualRow) => {
-                        const recipe =
-                            recipes[
+                        const group =
+                            groups[
                                 virtualRow.index
                                 ]
 
-                        if (!recipe) {
+                        if (!group) {
                             return null
                         }
 
@@ -99,27 +93,24 @@ export function VirtualRecipeList({
                                     rowVirtualizer.measureElement
                                 }
                                 className={
-                                    'virtual-recipe-row'
+                                    'virtual-output-group-row'
                                 }
                                 data-index={
                                     virtualRow.index
                                 }
-                                key={recipe.id}
+                                key={group.key}
                                 style={{
                                     transform:
                                         `translateY(` +
                                         `${virtualRow.start}px)`,
                                 }}
                             >
-                                <RecipeCard
-                                    active={
-                                        selectedRecipeId ===
-                                        recipe.id
-                                    }
-                                    recipe={recipe}
+                                <OutputGroupCard
+                                    active={false}
+                                    group={group}
                                     onSelect={() =>
-                                        onSelectRecipe(
-                                            recipe.id,
+                                        onSelectOutputGroup(
+                                            group,
                                         )
                                     }
                                 />
