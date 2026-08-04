@@ -68,8 +68,6 @@ import {
     searchRecipes,
 } from './catalog/recipeCatalogQueries'
 
-const MAX_VISIBLE_RECIPES = 200
-
 const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'inputs', label: 'Inputs' },
@@ -239,10 +237,6 @@ function App() {
 
     return outputGroups.find((group) => group.key === selectedOutputGroupKey)
   }, [outputGroups, selectedOutputGroupKey])
-
-  const visibleOutputGroups = outputGroups.slice(0, MAX_VISIBLE_RECIPES)
-
-  const visibleOutputGroupRecipes = selectedOutputGroup?.recipes.slice(0, MAX_VISIBLE_RECIPES) ?? []
 
   const selectedRecipe = selectedRecipeId
       ? recipeCatalog?.recipesById.get(selectedRecipeId)
@@ -462,9 +456,7 @@ function App() {
             loaded={loadState.status === 'loaded'}
             filteredRecipes={filteredRecipes}
             outputGroups={outputGroups}
-            visibleOutputGroups={visibleOutputGroups}
             selectedOutputGroup={selectedOutputGroup}
-            visibleOutputGroupRecipes={visibleOutputGroupRecipes}
             selectedRecipeId={selectedRecipeId}
             resultViewMode={resultViewMode}
             onSelectRecipe={(recipeId) => setSelectedRecipeId(recipeId)}

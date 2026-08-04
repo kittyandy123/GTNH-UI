@@ -1,19 +1,25 @@
-import { formatNumber } from '../lib/recipeHelpers'
-import type { NormalizedExportRecipe } from '../lib/normalizeExport'
-import type { OutputRecipeGroup, ResultViewMode } from '../types/recipeBrowser'
-import { OutputGroupCard } from './OutputGroupCard'
-import { RecipeCard } from './RecipeCard'
-import { VirtualRecipeList } from './VirtualRecipeList'
-
-const MAX_VISIBLE_RECIPES = 200
+import {
+    formatNumber,
+} from '../lib/recipeHelpers'
+import type {
+    NormalizedExportRecipe,
+} from '../lib/normalizeExport'
+import type {
+    OutputRecipeGroup,
+    ResultViewMode,
+} from '../types/recipeBrowser'
+import {
+    VirtualRecipeList,
+} from './VirtualRecipeList'
+import {
+    VirtualOutputGroupList,
+} from './VirtualOutputGroupList'
 
 interface RecipeResultsProps {
     loaded: boolean
     filteredRecipes: NormalizedExportRecipe[]
     outputGroups: OutputRecipeGroup[]
-    visibleOutputGroups: OutputRecipeGroup[]
     selectedOutputGroup: OutputRecipeGroup | undefined
-    visibleOutputGroupRecipes: NormalizedExportRecipe[]
     selectedRecipeId: string | undefined
     resultViewMode: ResultViewMode
     onSelectRecipe: (recipeId: string) => void
@@ -25,9 +31,7 @@ export function RecipeResults({
     loaded,
     filteredRecipes,
     outputGroups,
-    visibleOutputGroups,
     selectedOutputGroup,
-    visibleOutputGroupRecipes,
     selectedRecipeId,
     resultViewMode,
     onSelectRecipe,
@@ -66,114 +70,59 @@ export function RecipeResults({
                         selectedRecipeId={selectedRecipeId}
                         onSelectRecipe={onSelectRecipe}
                     />
-                ) : (
-                    <div className="recipe-list">
-                        {selectedOutputGroup ? (
-                            <>
-                                <div className="group-drilldown-header">
-                                    <button
-                                        className="group-back-button"
-                                        type="button"
-                                        onClick={onClearOutputGroup}
-                                    >
-                                        ← Back to output index
-                                    </button>
+                ) : selectedOutputGroup ? (
+                    <div className="output-group-drilldown">
+                        <div className="group-drilldown-header">
+                            <button
+                                className="group-back-button"
+                                type="button"
+                                onClick={onClearOutputGroup}
+                            >
+                                ← Back to output index
+                            </button>
 
-                                    <div className="group-drilldown-title">
-                                        <strong>
-                                            {
-                                                selectedOutputGroup
-                                                    .output
-                                                    .displayName
-                                            }
-                                        </strong>
+                            <div className="group-drilldown-title">
+                                <strong>
+                                    {
+                                        selectedOutputGroup
+                                            .output
+                                            .displayName
+                                    }
+                                </strong>
 
-                                        <span>
-                                            {formatNumber(
-                                                selectedOutputGroup
-                                                    .recipes
-                                                    .length,
-                                            )}{' '}
-                                            exact recipes
-                                        </span>
-                                    </div>
-                                </div>
+                                <span>
+                    {formatNumber(
+                        selectedOutputGroup
+                            .recipes
+                            .length,
+                    )}{' '}
+                                    exact recipes
+                </span>
+                            </div>
+                        </div>
 
-                                {visibleOutputGroupRecipes.map(
-                                    (recipe) => (
-                                        <RecipeCard
-                                            active={
-                                                selectedRecipeId ===
-                                                recipe.id
-                                            }
-                                            key={recipe.id}
-                                            recipe={recipe}
-                                            onSelect={() =>
-                                                onSelectRecipe(
-                                                    recipe.id,
-                                                )
-                                            }
-                                        />
-                                    ),
-                                )}
-
-                                {selectedOutputGroup.recipes.length >
-                                    MAX_VISIBLE_RECIPES && (
-                                        <div className="recipe-limit-note">
-                                            Showing first{' '}
-                                            {formatNumber(
-                                                MAX_VISIBLE_RECIPES,
-                                            )}{' '}
-                                            of{' '}
-                                            {formatNumber(
-                                                selectedOutputGroup
-                                                    .recipes
-                                                    .length,
-                                            )}{' '}
-                                            recipes producing{' '}
-                                            {
-                                                selectedOutputGroup
-                                                    .output
-                                                    .displayName
-                                            }
-                                            . Refine your search to
-                                            narrow the list.
-                                        </div>
-                                    )}
-                            </>
-                        ) : (
-                            <>
-                                {visibleOutputGroups.map((group) => (
-                                    <OutputGroupCard
-                                        active={false}
-                                        group={group}
-                                        key={group.key}
-                                        onSelect={() =>
-                                            onSelectOutputGroup(
-                                                group,
-                                            )
-                                        }
-                                    />
-                                ))}
-
-                                {outputGroups.length >
-                                    MAX_VISIBLE_RECIPES && (
-                                        <div className="recipe-limit-note">
-                                            Showing first{' '}
-                                            {formatNumber(
-                                                MAX_VISIBLE_RECIPES,
-                                            )}{' '}
-                                            of{' '}
-                                            {formatNumber(
-                                                outputGroups.length,
-                                            )}{' '}
-                                            output entries. Refine your
-                                            search to narrow the list.
-                                        </div>
-                                    )}
-                            </>
-                        )}
+                        <VirtualRecipeList
+                            className={
+                                'output-group-drilldown-list'
+                            }
+                            recipes={
+                                selectedOutputGroup.recipes
+                            }
+                            selectedRecipeId={
+                                selectedRecipeId
+                            }
+                            onSelectRecipe={
+                                onSelectRecipe
+                            }
+                        />
                     </div>
+                ) : (
+                    <VirtualOutputGroupList
+                        groups={outputGroups}
+                        onSelectOutputGroup={
+                            onSelectOutputGroup
+                        }
+                    />
                 )
             ) : (
                 <div className="empty-state">

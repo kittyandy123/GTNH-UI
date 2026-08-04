@@ -284,22 +284,39 @@
   padding-right: 4px;
 }
 
-.virtual-recipe-list {
+.virtual-recipe-list,
+.virtual-output-group-list {
   position: relative;
   display: block;
 }
 
-.virtual-recipe-list-inner {
+.virtual-recipe-list-inner,
+.virtual-output-group-list-inner {
   position: relative;
   width: 100%;
 }
 
-.virtual-recipe-row {
+.virtual-recipe-row,
+.virtual-output-group-row {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   box-sizing: border-box;
+}
+
+.output-group-drilldown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100svh - 380px);
+  min-height: 0;
+}
+
+.output-group-drilldown-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
 }
 
 .recipe-card {
@@ -1268,6 +1285,10 @@
   }
 
   .recipe-list {
+    max-height: 520px;
+  }
+
+  .output-group-drilldown {
     max-height: 520px;
   }
 }
