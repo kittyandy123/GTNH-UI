@@ -106,6 +106,35 @@ export function renamePlannerWindow(
   }
 }
 
+export function updatePlannerWindowPlan(
+  registry: WorkspaceRegistry,
+  plannerWindowId: string,
+  plan: PlannerPlan,
+  timestamp: string,
+): WorkspaceRegistry {
+  const plannerWindow = getRequiredPlannerWindow(registry, plannerWindowId)
+
+  if (plan.id !== plannerWindow.plan.id) {
+    throw new Error(`Planner plan ID must match window plan ID: ${plannerWindow.plan.id}`)
+  }
+
+  if (plan === plannerWindow.plan) {
+    return registry
+  }
+
+  return {
+    ...registry,
+    plannerWindowsById: {
+      ...registry.plannerWindowsById,
+      [plannerWindow.id]: {
+        ...plannerWindow,
+        plan,
+        updatedAt: requireNonBlank(timestamp, 'Timestamp'),
+      },
+    },
+  }
+}
+
 export function activateRecipeBrowser(registry: WorkspaceRegistry): WorkspaceRegistry {
   if (registry.activeWorkspace.kind === 'recipe-browser') {
     return registry
