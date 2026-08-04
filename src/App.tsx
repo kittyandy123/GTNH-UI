@@ -227,8 +227,6 @@ function App() {
         selectedMachineId,
     ])
 
-  const visibleRecipes = filteredRecipes.slice(0, MAX_VISIBLE_RECIPES)
-
   const outputGroups = useMemo(
       () => buildOutputGroups(filteredRecipes, searchText),
       [filteredRecipes, searchText],
@@ -463,7 +461,6 @@ function App() {
           <RecipeResults
             loaded={loadState.status === 'loaded'}
             filteredRecipes={filteredRecipes}
-            visibleRecipes={visibleRecipes}
             outputGroups={outputGroups}
             visibleOutputGroups={visibleOutputGroups}
             selectedOutputGroup={selectedOutputGroup}
